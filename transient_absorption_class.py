@@ -7,16 +7,32 @@ class TransientAbsorption:
     def __init__(self, filepath):
         
         self.change_file(filepath)
-        self.rawdata = np.genfromtxt(filepath, delimiter='\t')
-        if self.rawdata.ndim != 2: # This happens if the delimiter is not 'tab' but ','
-            self.rawdata = np.genfromtxt(filepath, delimiter=',')
+        self.rawdata = self.load_raw_data(filepath)
         self.rawdata[np.isnan(self.rawdata)] = 0.0
         self.delay = np.array(self.rawdata[0,1:], copy=True)
         self.wavelength = np.array(self.rawdata[1:,0], copy=True)
         self.deltaA = np.array(self.rawdata[1:,1:], copy=True)
         self.chirp_coeffs = [0.,0.,0.]
         self.pret0_background = np.zeros(self.wavelength.shape)
+    
+    def load_raw_data(self, filepath):
         
+        # find if there are footer rows in the file such as in Femto-A or Femto-B data
+        with open(filepath) as f:
+            max_rows_to_read = 0
+            s = f.readline()
+            while True:
+                if (s=='') or (s[0]=='f'):
+                        break
+                max_rows_to_read = max_rows_to_read+1
+                s = f.readline()
+        
+        rawdata = np.genfromtxt(filepath, delimiter='\t', max_rows=max_rows_to_read)
+        if rawdata.ndim != 2: # This happens if the delimiter is not '\t' (tab) but ',' (comma)
+            rawdata = np.genfromtxt(filepath, delimiter=',', max_rows=max_rows_to_read)
+            
+        return rawdata
+    
     def crop(self, delay_range, wavelength_range, method):
         
         wavelength_inds = np.arange(self.wavelength.size)
