@@ -109,7 +109,7 @@ class PlotAreaFrame(tk.Frame):
         else:     
             
             deltaA = np.flipud(TA.deltaA).transpose()
-            scaledTA = -np.arctan(deltaA*1000)
+            scaledTA = -np.arctan(deltaA/np.max(deltaA)) # just for plotting! normalize deltaA and use arctan transformation
             self.ax1.pcolormesh(TA.wavelength[::-1], TA.delay, scaledTA, shading='nearest', cmap=cm.RdBu)
             self.ax1.set_title(r'$\Delta$A surface')
             
