@@ -129,6 +129,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # disable fitting button
         self.fitting_user_input_frame.fit_button.configure(state='disabled')
         
+        # enable prompting user to add POIs to enable fitting
+        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
+        
         # create a fit model object
         fit_model_class = getattr(model_library, self.fit_model_classes[0])
         self.fitmodel = FitModel(self.TA, fit_model_class())
@@ -220,6 +223,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # disable fitting button
         self.fitting_user_input_frame.fit_button.configure(state='disabled')
         
+        # enable prompting user to add POIs to enable fitting
+        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
+        
         # refresh plots
         self.refresh_plots()
         
@@ -240,6 +246,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
         
         # disable fitting button
         self.fitting_user_input_frame.fit_button.configure(state='disabled')
+        
+        # enable prompting user to add POIs to enable fitting
+        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
         
         # Refresh plots, reset cursor object, and bind it to mouse movement over axis
         self.refresh_plots()
@@ -265,6 +274,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # disable fitting button
         self.fitting_user_input_frame.fit_button.configure(state='disabled')
         
+        # enable prompting user to add POIs to enable fitting
+        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
+        
         # Refresh plots, reset cursor object, and bind it to mouse movement over axis
         self.refresh_plots()
         
@@ -283,6 +295,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
             # enable fit button
             self.fitting_user_input_frame.fit_button.configure(state='normal')
             
+            # hide prompting user to add POIs to enable fitting
+            self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid_forget()
+            
             # refresh plots
             self.refresh_plots()
     
@@ -296,6 +311,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
         
         # disable fit button
         self.fitting_user_input_frame.fit_button.configure(state='disabled')
+        
+        # enable prompting user to add POIs to enable fitting
+        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
         
         # Refresh plots
         self.refresh_plots()
@@ -315,6 +333,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
             
             # disable fitting button
             self.fitting_user_input_frame.fit_button.configure(state='disabled')
+            
+            # enable prompting user to add POIs to enable fitting
+            self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
         
             # Refresh plots
             self.refresh_plots()
@@ -349,6 +370,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
         
         # enable fitting button
         self.fitting_user_input_frame.fit_button.configure(state='normal')
+        
+        # hide prompting user to add POIs to enable fitting
+        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid_forget()
             
         # refresh plots
         self.refresh_plots()
@@ -372,6 +396,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
         
         # enable fitting button
         self.fitting_user_input_frame.fit_button.configure(state='normal')
+        
+        # hide prompting user to add POIs to enable fitting
+        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid_forget()
             
         # refresh plots
         self.refresh_plots()
@@ -511,6 +538,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
         
         # disable fitting button
         self.fitting_user_input_frame.fit_button.configure(state='disabled')
+        
+        # enable prompting user to add POIs to enable fitting
+        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
         
         # refresh plots
         self.refresh_plots()

@@ -47,7 +47,7 @@ class LogFrame(tk.Frame):
         self.info_log.heading('col#2', text='Info')
         
         self.info_log.column('col#1', width=120)
-        self.info_log.column('col#2', width=880)
+        self.info_log.column('col#2', width=1100)
         
         self.info_log.config(yscrollcommand=self.scrollbar.set)
         
