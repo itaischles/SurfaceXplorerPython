@@ -10,7 +10,7 @@ import time
 from plot_area_gui import PlotAreaFrame
 from fitting_gui import FittingUserInputFrame, EditInitialGuessGui
 from misc_guis import FilePathFrame, LogFrame
-from data_correction_guis import ChirpCorrectGui, SubtractBackgroundGui
+from data_correction_guis import ChirpCorrectGui, SVDGui, SubtractBackgroundGui
 
 # import TA and fitting classes
 from transient_absorption_class import TransientAbsorption
@@ -34,7 +34,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # load the models from the model library file (should be located in this folder!)
         self.fit_model_classes, self.fit_model_names = self.read_model_library()
         
-        # initialize boolean variables for fitting stuff
+        # initialize boolean variables
         self.fitting_mode = tk.BooleanVar()
         self.fitting_mode.set(False)
         
@@ -83,6 +83,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.crop_menu.add_command(label='Delete selected', command=self.crop_delete_selected)
         self.surface_menu.add_command(label='Subtract background...', command=self.subtract_background)
         self.surface_menu.add_command(label='Chirp correct...', command=self.chirp_correct)
+        self.surface_menu.add_command(label='SVD filter', command=self.SVD_filter)
         self.surface_menu.add_command(label='Apply Gaussian filter', command=self.apply_gaussian_filter)
         self.surface_menu.add_command(label='Quick create POIs (fs)', command=self.quick_create_POIs_fs)
         self.surface_menu.add_command(label='Quick create POIs (ns)', command=self.quick_create_POIs_ns)
@@ -197,9 +198,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
             self.plot_area_frame.refresh_fig2(self.TA, self.fitmodel)
             self.plot_area_frame.refresh_fig3(self.TA, self.fitmodel)
         else:
-            self.plot_area_frame.refresh_fig1(self.TA)
-            self.plot_area_frame.refresh_fig2(self.TA)
-            self.plot_area_frame.refresh_fig3(self.TA)
+            self.plot_area_frame.refresh_fig1(self.TA, [])
+            self.plot_area_frame.refresh_fig2(self.TA, [])
+            self.plot_area_frame.refresh_fig3(self.TA, [])
     
     def chirp_correct(self):
         
@@ -228,6 +229,26 @@ class SurfaceXplorerPythonGui(tk.Tk):
         
         # refresh plots
         self.refresh_plots()
+        
+    def SVD_filter(self):
+        
+        # open SVD GUI for user and wait for user to close that window.
+        SVD_components, SVD_filtered_deltaA = SVDGui(self, self.TA).get_SVD_filtered_deltaA()
+        if len(SVD_components) == 0:
+            # update log
+            self.log_frame.update_log('Data was NOT SVD filtered. Cancelled by user')
+        else:
+            self.TA.deltaA = SVD_filtered_deltaA
+            # update log
+            self.log_frame.update_log('TA data SVD filtered using '+str(len(SVD_components))+' component(s)')
+            # clear all POIs if they were present before SVD filtering
+            self.plot_area_frame.POI_table.clear_table()
+            # disable fitting button
+            self.fitting_user_input_frame.fit_button.configure(state='disabled')
+            # enable prompting user to add POIs to enable fitting
+            self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
+            # refresh plots
+            self.refresh_plots()
         
     def crop_keep_selected(self):
         
@@ -430,6 +451,14 @@ class SurfaceXplorerPythonGui(tk.Tk):
         first_col_kinetics = np.expand_dims(np.concatenate((np.zeros(1),self.TA.delay)),axis=1)
         first_col_spectra = np.expand_dims(np.concatenate((np.zeros(1),self.TA.wavelength)),axis=1)
         
+        ########################################
+        # Prepare arctan scaling of TA surface #
+        ########################################
+        
+        deltaA_scaled = np.arctan(self.TA.deltaA/np.max(self.TA.deltaA))
+        deltaA_scaled = np.concatenate((np.asmatrix(self.TA.delay),deltaA_scaled))
+        deltaA_scaled = np.concatenate((np.asmatrix(np.insert(self.TA.wavelength, 0, 0)).T,deltaA_scaled),axis=1)
+        
         ################
         # Prepare fits #
         ################
@@ -473,6 +502,8 @@ class SurfaceXplorerPythonGui(tk.Tk):
             os.makedirs(self.TA.filepath + '/Exports/POIs')
         if not os.path.isdir(self.TA.filepath + '/Exports/Fits'):
             os.makedirs(self.TA.filepath + '/Exports/Fits')
+        if not os.path.isdir(self.TA.filepath + '/Exports/Scaled TA surface'):
+            os.makedirs(self.TA.filepath + '/Exports/Scaled TA surface')
 
         # save the POI kinetics
         kinetics_filepath = self.TA.filepath + '/Exports/POIs/' + self.TA.basename +'__POI_kinetics.csv'
@@ -503,6 +534,11 @@ class SurfaceXplorerPythonGui(tk.Tk):
         deltaA_residuals_filepath = self.TA.filepath + '/Exports/Fits/' + self.TA.basename +'__deltaA_residuals.csv'
         with open(deltaA_residuals_filepath, 'wb') as f:
             np.savetxt(f, deltaA_residuals, delimiter=',', fmt='%.6e')
+            
+        # save the deltaA matrix in scaled-arctan form
+        deltaA_scaled_filepath = self.TA.filepath + '/Exports/Scaled TA surface/' + self.TA.basename +'__deltaA_arctan_scaled.csv'
+        with open(deltaA_scaled_filepath, 'wb') as f:
+            np.savetxt(f, deltaA_scaled, delimiter=',', fmt='%.6e')
             
         # save the fit report file
         fit_report_filepath = self.TA.filepath + '/Exports/Fits/' + self.TA.basename +'__fit_report.txt'
@@ -632,3 +668,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         
         # update log
         self.log_frame.update_log('New initial guess of fitting parameters')
+        
+    def inverse_deltaA_scale(self):
+        
+        self.kinetics_y_scale = 'inverse'

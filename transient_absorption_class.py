@@ -50,7 +50,7 @@ class TransientAbsorption:
             self.wavelength = self.wavelength[wavelength_mask]
             self.delay = self.delay[delay_mask]
         elif method=='delete':
-            self.deltaA[wavelength_inds[0]:wavelength_inds[-1], delay_inds[0]:delay_inds[-1]] = np.nan
+            self.deltaA[wavelength_inds[0]:wavelength_inds[-1], delay_inds[0]:delay_inds[-1]] = 0.0
             
     def reset_TA_data(self):
         
@@ -74,8 +74,8 @@ class TransientAbsorption:
             interp_func = scipy.interpolate.interp1d(self.delay, self.deltaA[wavelength_index,:], bounds_error=False, fill_value='extrapolate')
             self.deltaA[wavelength_index,:] = interp_func(self.delay+chirp)
         
-    def chirp_fit_func(self, x, a, b, c):
-        return a*x**2 + b*x + c
+    def chirp_fit_func(self, x, a, b, c, d):
+        return a*x**3 + b*x**2 + c*x + d
     
     def subtract_pret0_background(self):
         

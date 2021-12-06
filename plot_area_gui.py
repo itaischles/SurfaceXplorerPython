@@ -156,7 +156,7 @@ class PlotAreaFrame(tk.Frame):
                 wavelength, delay, color = self.POI_table.get_poi(iid)
                 wavelength_index = np.absolute(wavelength-TA.wavelength).argmin()
                 self.ax2.plot(TA.delay, TA.deltaA[wavelength_index,:]*1000, lw=1, color=color, alpha=0.75)
-                
+                    
         self.ax2.set_xscale('symlog', linthresh=1.0, linscale=0.35)
         self.ax2.set_xlim((min(TA.delay),max(TA.delay)))
                 

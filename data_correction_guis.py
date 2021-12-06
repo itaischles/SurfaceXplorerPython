@@ -97,7 +97,7 @@ class ChirpCorrectGui(tk.Toplevel):
         # plot chirp
         self.ax.plot(self.TA.wavelength, self.chirp, color='blue')
         
-        self.ax.set_yscale('symlog', linthresh=1.0, linscale=0.35)
+        self.ax.set_yscale('symlog', linthresh=10.0, linscale=2.0)
         self.ax.set_xlabel('Wavelength')
         self.ax.set_ylabel('Time')
         self.ax.figure.canvas.draw()
@@ -235,3 +235,145 @@ class SubtractBackgroundGui(tk.Toplevel):
 
 #####################################################################################################################
 #####################################################################################################################
+
+class SVDGui(tk.Toplevel):
+    
+    def __init__(self, master, TA):
+        
+        super().__init__(master) # parent class (=tk.Toplevel) initialization
+        
+        self.toolbar_frame = tk.Frame(self)
+        self.component_selection_frame = tk.Frame(self)
+        
+        # get TA data and perform SVD on it
+        self.TA = TA
+        self.U, self.S, self.VH = np.linalg.svd(self.TA.deltaA)
+        
+        # create matplotlib figures
+        self.fig = plt.Figure(figsize=(9,6), dpi=100)
+        self.ax1 = self.fig.add_subplot(2,2,1)
+        self.ax2 = self.fig.add_subplot(2,2,2)
+        self.ax3 = self.fig.add_subplot(2,2,3)
+        self.ax4 = self.fig.add_subplot(2,2,4)
+        
+        # create figure canvas
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas.draw()
+        
+        # create toolbar. The toolbar only sits in a frame because we need to pack it using the grid manager (toolbar by itself can only use pack manager)
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
+        self.toolbar.update()
+        self.toolbar.pack()
+        
+        # create component selection checkbuttons and variables
+        self.N_components = 9 # max number of SVD components
+        self.component_variables = [tk.IntVar(self.component_selection_frame) for i in range(self.N_components)]
+        self.component_checkbuttons = [tk.Checkbutton(self.component_selection_frame, text='Comp. '+str(i+1), variable=self.component_variables[i]) for i in range(self.N_components)]
+        
+        # pack checkbuttons to frame
+        for i in range(self.N_components):
+            
+            # pack the checkbuttons
+            Nrows=3 # number of rows
+            self.component_checkbuttons[i].grid(row=np.mod(i,Nrows),column=int(np.floor(i/Nrows)))
+            
+            # trace changes in the intvars
+            self.component_variables[i].trace_add('write', self.plot_figure)
+            
+        # create button widget
+        self.apply_SVD_filter_button = ttk.Button(self, text='Apply SVD filter', command=self.apply_SVD_filter)
+        
+        # plot singular values
+        self.ax4.cla()
+        self.ax4.plot(np.array(range(self.N_components))+1, self.S[:self.N_components], marker='o')
+        self.ax4.set_yscale('log')
+        self.ax4.set_xlabel('Comp. #')
+        self.ax4.set_ylabel('S')
+        self.ax4.figure.canvas.draw()
+        
+        # pack the widgets onto the frames
+        self.canvas.get_tk_widget().grid(row=0,column=0)
+        self.toolbar_frame.grid(row=1,column=0, sticky='w')
+        self.component_selection_frame.grid(row=2,column=0)
+        self.apply_SVD_filter_button.grid(row=3,column=0)
+        
+        # make this window modal
+        self.wait_window()
+    
+    def get_selected_SVD_indices(self):
+        
+        # outputs a vector of the SVD component numbers based on the checkbox selection
+        variable_list = [x.get() for x in self.component_variables]
+        SVD_indices = []
+        for i in range(len(variable_list)):
+            if variable_list[i]==1:
+                SVD_indices.append(i)  
+        return SVD_indices
+        
+    def get_SVD_deltaA_components(self, selected_SVD_indices):
+        
+        SVD_components = np.zeros(self.TA.deltaA.shape)
+        for i in selected_SVD_indices:
+            SVD_components = SVD_components + self.S[i] * np.array((self.U[:,i],)).T @ np.array((self.VH[i,:],))
+        return SVD_components
+    
+    def get_SVD_kinetic_components(self, selected_SVD_indices):
+        
+        SVD_components = np.zeros((len(self.TA.delay),len(selected_SVD_indices)))
+        for i,n in enumerate(selected_SVD_indices):
+            SVD_components[:,i] = self.S[n] * np.array(self.VH[n,:]).T
+        
+        return SVD_components
+    
+    def get_SVD_spectrum_components(self, selected_SVD_indices):
+        
+        SVD_components = np.zeros((len(self.TA.wavelength),len(selected_SVD_indices)))
+        for i,n in enumerate(selected_SVD_indices):
+            SVD_components[:,i] = self.S[n] * np.array(self.U[:,n])
+        
+        return SVD_components
+    
+    def plot_figure(self, *args):
+        
+        selected_SVD_indices = self.get_selected_SVD_indices()
+        if selected_SVD_indices==[]:
+            return
+        
+        # plot selected components on deltaA axes
+        SVD_deltaA = np.flipud(self.get_SVD_deltaA_components(selected_SVD_indices)).transpose()
+        scaled_SVD_deltaA = -np.arctan(SVD_deltaA*1000)
+        self.ax1.cla()
+        self.ax1.pcolormesh(self.TA.wavelength[::-1], self.TA.delay, scaled_SVD_deltaA, shading='nearest', cmap=cm.RdBu)
+        self.ax1.set_yscale('symlog', linthresh=1.0, linscale=0.35)
+        self.ax1.set_xlabel('Wavelength')
+        self.ax1.set_ylabel('Time')
+        self.ax1.figure.canvas.draw()
+        
+        # plot selected component kinetics
+        self.ax2.cla()
+        self.ax2.plot(self.TA.delay, self.get_SVD_kinetic_components(selected_SVD_indices))
+        self.ax2.plot([min(self.TA.delay),max(self.TA.delay)], [0,0], color='black', alpha=0.5)
+        self.ax2.set_xscale('symlog', linthresh=1.0, linscale=0.35)
+        self.ax2.set_xlabel('Time')
+        self.ax2.set_ylabel(r'$\Delta$A')
+        self.ax2.figure.canvas.draw()
+        
+        # plot selected component spectra
+        self.ax3.cla()
+        self.ax3.plot(self.TA.wavelength, self.get_SVD_spectrum_components(selected_SVD_indices))
+        self.ax3.plot([min(self.TA.wavelength),max(self.TA.wavelength)], [0,0], color='black', alpha=0.5)
+        self.ax3.set_xlabel('Wavelength')
+        self.ax3.set_ylabel(r'$\Delta$A')
+        self.ax3.figure.canvas.draw()
+
+        self.toolbar.update()
+        
+    def get_SVD_filtered_deltaA(self):
+
+        # return the SVD components used and the filtered deltaA based on the selected components
+        return self.get_selected_SVD_indices(), self.get_SVD_deltaA_components(self.get_selected_SVD_indices())
+    
+    def apply_SVD_filter(self):
+        
+        # close the window
+        self.destroy()
