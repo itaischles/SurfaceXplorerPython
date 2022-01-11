@@ -50,7 +50,7 @@ class TransientAbsorption:
             self.wavelength = self.wavelength[wavelength_mask]
             self.delay = self.delay[delay_mask]
         elif method=='delete':
-            self.deltaA[wavelength_inds[0]:wavelength_inds[-1], delay_inds[0]:delay_inds[-1]] = 0.0
+            self.deltaA[wavelength_inds[0]:wavelength_inds[-1]+1, delay_inds[0]:delay_inds[-1]+1] = 0.0
             
     def reset_TA_data(self):
         
