@@ -14,31 +14,31 @@ class PlotAreaFrame(tk.Frame):
         
         super().__init__(master, relief=tk.FLAT) # parent class (=tk.Frame) initialization
         
-        # initialize sub-frames to contain figures and toolbars
-        self.frame_fig1 = tk.Frame(self)  
-        self.frame_fig2 = tk.Frame(self)
-        self.frame_fig3 = tk.Frame(self)
+        # initialize frame to contain POIs
         self.frame_POI = tk.Frame(self)
-                
-        # initialize the matplotlib figures (size, dpi, position, axes labels, etc...)
-        self.init_figures()
         
-        # make Tk/Matplotlib figure canvases on the plot area frame and draw onto them the plots generated previously
-        self.canvas1 = FigureCanvasTkAgg(self.fig1, master=self.frame_fig1)
-        self.canvas2 = FigureCanvasTkAgg(self.fig2, master=self.frame_fig2)
-        self.canvas3 = FigureCanvasTkAgg(self.fig3, master=self.frame_fig3)
-        self.canvas1.draw()
-        self.canvas2.draw()
-        self.canvas3.draw()
+        # create plot toolbar frame
+        self.toolbar_frame = tk.Frame(self)
+        
+        # create the figure
+        self.fig = plt.Figure(figsize=(8,6), dpi=100)
+        self.fig.set_tight_layout(True)
+        
+        # create axes
+        self.ax1 = self.fig.add_subplot(2,2,1)
+        self.ax2 = self.fig.add_subplot(2,2,2)
+        self.ax3 = self.fig.add_subplot(2,2,3)
+        self.ax4 = self.fig.add_subplot(2,2,4)
+        
+        # make Tk/Matplotlib figure canvas
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas.draw()
         
         # create toolbars
-        self.toolbar1 = NavigationToolbar2Tk(self.canvas1, self.frame_fig1)
-        self.toolbar1.update()
-        self.toolbar2 = NavigationToolbar2Tk(self.canvas2, self.frame_fig2)
-        self.toolbar2.update()
-        self.toolbar3 = NavigationToolbar2Tk(self.canvas3, self.frame_fig3)
-        self.toolbar3.update()
-        
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.toolbar_frame)
+        self.toolbar.update()
+        self.toolbar.pack()
+    
         # create tree widget to hold POIs
         self.POI_table = POITable(self.frame_POI)
         
@@ -52,42 +52,15 @@ class PlotAreaFrame(tk.Frame):
         # create header label for POI table
         self.POI_label = ttk.Label(self.frame_POI,text='Points of interest')
         
-        # use geometry managers to pack the widgets within each frame
-        self.canvas1.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-        self.canvas2.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-        self.canvas3.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-        self.toolbar1.pack()
-        self.toolbar2.pack()
-        self.toolbar3.pack()
+        # use geometry managers to pack the widgets
         self.POI_label.grid(row=0,column=0,sticky='n')
         self.POI_table.grid(row=1,column=0,sticky='ns')
         self.POI_table_scrollbar.grid(row=1,column=1,sticky='ns')
         
         # Use the grid geometry manager to pack the widgets in the main plot area frame
-        self.frame_fig1.grid(row=0,column=0,sticky='nsew')
-        self.frame_fig2.grid(row=0,column=1,sticky='nsew')
-        self.frame_fig3.grid(row=1,column=0,sticky='nsew')
-        self.frame_POI.grid(row=1,column=1,sticky='ns')    
-        
-    def init_figures(self):
-        
-        # create figure 1
-        self.fig1 = plt.Figure(figsize=(5,3.5), dpi=100)
-        self.ax1 = self.fig1.add_subplot(111)
-        self.ax1.set_position([0.18,0.17,0.77,0.78])
-        self.fig1.set_tight_layout(True)
-        
-        # create figure 2
-        self.fig2 = plt.Figure(figsize=(5,3.5), dpi=100)
-        self.ax2 = self.fig2.add_subplot(111)
-        self.ax2.set_position([0.18,0.17,0.77,0.78])
-        self.fig2.set_tight_layout(True)
-        
-        # create figure 3
-        self.fig3 = plt.Figure(figsize=(5,3.5), dpi=100)
-        self.ax3 = self.fig3.add_subplot(111)
-        self.ax3.set_position([0.18,0.17,0.77,0.78])
-        self.fig3.set_tight_layout(True)
+        self.canvas.get_tk_widget().grid(row=0,column=0)
+        self.frame_POI.grid(row=0,column=1,sticky='ns')
+        self.toolbar_frame.grid(row=1,column=0,sticky='w')
         
     def refresh_fig1(self, TA, fitmodel=[]):
         
@@ -97,21 +70,10 @@ class PlotAreaFrame(tk.Frame):
         
         self.ax1.cla()
         
-        if fitmodel != []: # plot the experimental and fitted kinetic traces overlaid
-            
-            # get fitting parameters from the fitmodel object
-            fit_params = np.concatenate(([fitmodel.irf], fitmodel.model.K))
-            deltaA_residuals = fitmodel.calc_model_deltaA_residual_matrix(fit_params).transpose()
-            scaled_deltaA_residuals = -np.arctan(deltaA_residuals*1000)
-            self.ax1.pcolormesh(TA.wavelength, TA.delay, scaled_deltaA_residuals, shading='nearest', cmap=cm.RdBu)
-            self.ax1.set_title(r'$\Delta$A residuals')
-            
-        else:     
-            
-            deltaA = np.flipud(TA.deltaA).transpose()
-            scaledTA = -np.arctan(deltaA/np.max(deltaA)) # just for plotting! normalize deltaA and use arctan transformation
-            self.ax1.pcolormesh(TA.wavelength[::-1], TA.delay, scaledTA, shading='nearest', cmap=cm.RdBu)
-            self.ax1.set_title(r'$\Delta$A surface')
+        deltaA = np.flipud(TA.deltaA).transpose()
+        scaledTA = -np.arctan(deltaA/np.max(deltaA)) # just for plotting! normalize deltaA and use arctan transformation
+        self.ax1.pcolormesh(TA.wavelength[::-1], TA.delay, scaledTA, shading='nearest', cmap=cm.RdBu)
+        self.ax1.set_title(r'$\Delta$A surface')
             
         # add the points of interest
         for iid in self.POI_table.get_children():
@@ -128,9 +90,7 @@ class PlotAreaFrame(tk.Frame):
         
         # show plot on GUI
         self.ax1.figure.canvas.draw()
-        self.toolbar1.update()
-        self.toolbar2.update()
-        self.toolbar3.update()
+        self.toolbar.update()
     
     def refresh_fig2(self, TA, fitmodel=[]):
         
@@ -142,7 +102,7 @@ class PlotAreaFrame(tk.Frame):
         if fitmodel != []: # plot the experimental and fitted kinetic traces overlaid
             
             # get fitting parameters from the fitmodel object
-            fit_params = np.concatenate(([fitmodel.irf], fitmodel.model.K))
+            fit_params = np.concatenate(([fitmodel.irf, fitmodel.tzero], fitmodel.model.K))
 
             for i,iid in enumerate(self.POI_table.get_children()):
                 wavelength, delay, color = self.POI_table.get_poi(iid)
@@ -180,7 +140,7 @@ class PlotAreaFrame(tk.Frame):
         if fitmodel != []: # plot the species associated spectra
             
             # get fitting parameters from the fitmodel object
-            fit_params = np.concatenate(([fitmodel.irf], fitmodel.model.K))
+            fit_params = np.concatenate(([fitmodel.irf, fitmodel.tzero], fitmodel.model.K))
             
             # calculate normalized species associated spectra
             model_species_spectra = fitmodel.calc_model_species_spectra(fit_params)
@@ -213,7 +173,40 @@ class PlotAreaFrame(tk.Frame):
         
         # show plot on GUI
         self.ax3.figure.canvas.draw()
+    
+    def refresh_fig4(self, TA, fitmodel=[]):
         
+        # start by plotting the TA surface
+        if TA == []:
+            return
+        
+        self.ax4.cla()
+        
+        if fitmodel != []: # plot the experimental and fitted kinetic traces overlaid
+            
+            # get fitting parameters from the fitmodel object
+            fit_params = np.concatenate(([fitmodel.irf, fitmodel.tzero], fitmodel.model.K))
+            deltaA_residuals = fitmodel.calc_model_deltaA_residual_matrix(fit_params).transpose()
+            scaled_deltaA_residuals = -np.arctan(deltaA_residuals*1000)
+            self.ax4.pcolormesh(TA.wavelength, TA.delay, scaled_deltaA_residuals, shading='nearest', cmap=cm.RdBu)
+            self.ax4.set_title(r'$\Delta$A residuals')
+            
+            # add the points of interest
+            for iid in self.POI_table.get_children():
+                wavelength, delay, color = self.POI_table.get_poi(iid)
+                self.ax4.plot(wavelength, delay, marker='o', markeredgecolor=color, markerfacecolor=color)
+
+        self.ax4.set_yscale('symlog', linthresh=1.0, linscale=0.35)
+        xlims = self.ax4.get_xlim()
+        ylims = self.ax4.get_ylim()
+        self.ax4.set_xlim(xlims)
+        self.ax4.set_ylim(ylims)
+        self.ax4.set_xlabel('Wavelength')
+        self.ax4.set_ylabel('Delay')
+        
+        # show plot on GUI
+        self.ax4.figure.canvas.draw()
+
 #####################################################################################################################
 #####################################################################################################################
 

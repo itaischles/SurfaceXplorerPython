@@ -69,6 +69,8 @@ class FitParamsTable(ttk.Treeview):
         if fitmodel != []:
             for (name, value, error) in zip(fitmodel.model.parameter_names[::-1], fitmodel.model.K[::-1], fitmodel.fit_errors[::-1]):
                 self.insert('', 0, values=(name, '{:.3f}'.format(value), '{:.3f}'.format(error)))
+            # insert a row for time-zero
+            self.insert('', 0, values=('t0', '{:.3f}'.format(fitmodel.tzero), '{:.3f}'.format(fitmodel.fit_errors[1])))
             # insert a row for IRF
             self.insert('', 0, values=('IRF', '{:.3f}'.format(fitmodel.irf), '{:.3f}'.format(fitmodel.fit_errors[0])))
 
@@ -105,7 +107,7 @@ class EditInitialGuessGui(tk.Toplevel):
         self.lower_bounds[0].set(str(fitmodel.lower_bounds[0]))
         self.upper_bounds.append(tk.StringVar())
         self.upper_bounds[0].set(str(fitmodel.upper_bounds[0]))
-
+        
         # add entry boxes for the IRF
         self.entry_values.append(tk.Entry(self, textvariable=self.values[0]))
         self.entry_values[0].grid(row=1,column=1)
@@ -114,7 +116,27 @@ class EditInitialGuessGui(tk.Toplevel):
         self.entry_upper_bounds.append(tk.Entry(self, textvariable=self.upper_bounds[0]))
         self.entry_upper_bounds[0].grid(row=1,column=3)
         
-        for i,name in enumerate(fitmodel.model.parameter_names, start=1):
+        # add labels for time-zero
+        self.label.append(tk.Label(self, text='t0', justify='left'))
+        self.label[1].grid(row=2,column=0)
+        
+        # initialize string variables for the time-zero
+        self.values.append(tk.StringVar())
+        self.values[1].set(str(fitmodel.tzero))
+        self.lower_bounds.append(tk.StringVar())
+        self.lower_bounds[1].set(str(fitmodel.lower_bounds[1]))
+        self.upper_bounds.append(tk.StringVar())
+        self.upper_bounds[1].set(str(fitmodel.upper_bounds[1]))
+
+        # add entry boxes for the time-zero
+        self.entry_values.append(tk.Entry(self, textvariable=self.values[1]))
+        self.entry_values[1].grid(row=2,column=1)
+        self.entry_lower_bounds.append(tk.Entry(self, textvariable=self.lower_bounds[1]))
+        self.entry_lower_bounds[1].grid(row=2,column=2)
+        self.entry_upper_bounds.append(tk.Entry(self, textvariable=self.upper_bounds[1]))
+        self.entry_upper_bounds[1].grid(row=2,column=3)
+        
+        for i,name in enumerate(fitmodel.model.parameter_names, start=2):
             
             # add labels for fitting parameter names
             self.label.append(tk.Label(self, text=name, justify='left'))
@@ -122,7 +144,7 @@ class EditInitialGuessGui(tk.Toplevel):
             
             # initialize string variables for the fitting parameters
             self.values.append(tk.StringVar())
-            self.values[i].set(str(fitmodel.model.K[i-1]))
+            self.values[i].set(str(fitmodel.model.K[i-2]))
             self.lower_bounds.append(tk.StringVar())
             self.lower_bounds[i].set(str(fitmodel.lower_bounds[i]))
             self.upper_bounds.append(tk.StringVar())
