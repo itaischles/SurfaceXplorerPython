@@ -9,13 +9,14 @@ from scipy.optimize import least_squares
 
 class FitModel:
     
-    def __init__(self, TA, model, irf=0.3):
+    def __init__(self, TA, model, irf=0.3, tzero=0.0):
         
         self.TA = TA
         self.model = model
-        self.lower_bounds = np.concatenate(([0.01],self.model.lower_bounds_K))
-        self.upper_bounds = np.concatenate(([50.0],self.model.upper_bounds_K))
+        self.lower_bounds = np.concatenate(([0.01, -1.0],self.model.lower_bounds_K))
+        self.upper_bounds = np.concatenate(([50.0, 1.0],self.model.upper_bounds_K))
         self.irf = irf
+        self.tzero = tzero
         self.optimized_result = []
         self.fit_errors = np.ones(len(self.model.K)+1)*np.nan
         self.check_wavelengths = [self.TA.wavelength[round(len(self.TA.wavelength)/2)]]
@@ -23,7 +24,7 @@ class FitModel:
         self.mean_squared_error = np.nan
         self.covariance_matrix = np.ones((len(self.fit_errors), len(self.fit_errors)))*np.nan
         
-    def _convolve_with_IRF(self, kinetic_traces, irf):
+    def _convolve_with_IRF(self, kinetic_traces, irf, tzero):
         
         ####################################################################
         # INPUT: kinetic traces are arranged in a (D,W)
@@ -32,15 +33,15 @@ class FitModel:
         ####################################################################
         
         # find time-zero index in delay vector
-        t0_index = np.argmin(abs(self.TA.delay))
+        t0_index = np.argmin(abs(self.TA.delay-tzero))
         
         # zero the kinetic traces prior to time zero (effectively applying a step function)
         kinetic_traces[0:t0_index, :] = 0.0
         
         # create linearly sampled time axis for convolution with Gaussian
         dt = (self.TA.delay[1]-self.TA.delay[0])/3
-        delay_positive = np.arange(0.0, self.TA.delay[-1]+dt, dt)
-        delay_negative = np.arange(-self.TA.delay[-1], 0.0, dt)
+        delay_positive = np.arange(tzero, self.TA.delay[-1]+dt, dt)
+        delay_negative = np.arange(-self.TA.delay[-1], tzero, dt)
         delay = np.concatenate((delay_negative, delay_positive))
         
         # create Gaussian IRF
@@ -106,7 +107,8 @@ class FitModel:
         
         # extract fitting parameters from fitting parameter vector P
         irf = P[0]
-        K = P[1:]
+        tzero = P[1]
+        K = P[2:]
         
         # get time span vector: (first_delay, last_delay) to use when solving the model diff. eq.
         t_span = (self.TA.delay[0], self.TA.delay[-1])
@@ -114,7 +116,7 @@ class FitModel:
         # calculate the species decay traces (as column vectors) and convolve with IRF.
         # The solve_ivp method 'LSODA' appears to be much faster (~0.01 sec) than the default 'RK45' (~0.2 sec)
         species_decays = solve_ivp(lambda t,y: self.model.diffeq(t,y,K), t_span, self.model.initial_populations, t_eval=self.TA.delay, method='LSODA').y.transpose()
-        species_decays = self._convolve_with_IRF(species_decays, irf)
+        species_decays = self._convolve_with_IRF(species_decays, irf, tzero)
         
         return species_decays
     
@@ -191,7 +193,7 @@ class FitModel:
     def fit_model(self):
         
         # build array of initial guesses of the fitting parameters
-        P0 = np.concatenate(([self.irf], self.model.K))
+        P0 = np.concatenate(([self.irf, self.tzero], self.model.K))
         
         # set bounds on fitting parameters and make sure that for each parameter, lower and upper bounds are different
         lower_bounds = list(map(lambda x: x-1e-15, self.lower_bounds))
@@ -201,7 +203,7 @@ class FitModel:
         # use least-squares to calculate fitting parameters for the vector of fitting parameters P=[irf,K]
         self.optimized_result = least_squares(self._calc_residuals,
                                               x0=P0,
-                                              x_scale=np.concatenate(([self.irf], self.model.K)),
+                                              x_scale=np.concatenate(([self.irf, 0.1], self.model.K)),
                                               bounds=fit_param_bounds,
                                               loss='soft_l1',
                                               ftol = 1e-12, 
@@ -211,14 +213,16 @@ class FitModel:
                                               verbose=2 # 0=no printing of steps during computation, 2=printing of steps during computation
                                               )
         self.irf = self.optimized_result.x[0]
-        self.model.K = self.optimized_result.x[1:]
+        self.tzero = self.optimized_result.x[1]
+        self.model.K = self.optimized_result.x[2:]
         
         self.fit_errors = self._calculate_fit_error()
         
     def change_initial_guess(self, initial_guess):
         
         self.irf = initial_guess[0]
-        self.model.K = initial_guess[1:]
+        self.tzero = initial_guess[1]
+        self.model.K = initial_guess[2:]
         self.fit_errors = np.ones(len(self.model.K)+1)*np.nan
         self.mean_squared_error = np.nan
         self.covariance_matrix = np.ones((len(self.fit_errors), len(self.fit_errors)))*np.nan

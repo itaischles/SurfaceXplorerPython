@@ -125,7 +125,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.menubar.entryconfig('Fitting', state='normal')
         
         # enable adding POIs
-        self.event_add_POI = self.plot_area_frame.fig1.canvas.mpl_connect('button_press_event', self.add_POI_button_click)
+        self.event_add_POI = self.plot_area_frame.fig.canvas.mpl_connect('button_press_event', self.add_POI_button_click)
         
         # disable fitting button
         self.fitting_user_input_frame.fit_button.configure(state='disabled')
@@ -197,10 +197,15 @@ class SurfaceXplorerPythonGui(tk.Tk):
             self.plot_area_frame.refresh_fig1(self.TA, self.fitmodel)
             self.plot_area_frame.refresh_fig2(self.TA, self.fitmodel)
             self.plot_area_frame.refresh_fig3(self.TA, self.fitmodel)
+            self.plot_area_frame.refresh_fig4(self.TA, self.fitmodel)
         else:
             self.plot_area_frame.refresh_fig1(self.TA, [])
             self.plot_area_frame.refresh_fig2(self.TA, [])
             self.plot_area_frame.refresh_fig3(self.TA, [])
+            self.plot_area_frame.refresh_fig4(self.TA, [])
+        
+        # update the plot toolbar
+        self.plot_area_frame.toolbar.update()
     
     def chirp_correct(self):
         
@@ -220,12 +225,12 @@ class SurfaceXplorerPythonGui(tk.Tk):
             
             # update log
             self.log_frame.update_log('TA data chirp corrected')
-        
-        # disable fitting button
-        self.fitting_user_input_frame.fit_button.configure(state='disabled')
-        
-        # enable prompting user to add POIs to enable fitting
-        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
+            
+            # disable fitting button
+            self.fitting_user_input_frame.fit_button.configure(state='disabled')
+            
+            # enable prompting user to add POIs to enable fitting
+            self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
         
         # refresh plots
         self.refresh_plots()
@@ -307,7 +312,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
     def add_POI_button_click(self, event):
         
         # if the toolbar is in either 'zoom' or 'pan' mode, do not add POI
-        if (self.plot_area_frame.toolbar1.mode != 'zoom rect') and (self.plot_area_frame.toolbar1.mode != 'pan/zoom'):
+        if (self.plot_area_frame.toolbar.mode != 'zoom rect') and (self.plot_area_frame.toolbar.mode != 'pan/zoom'):
         
             # add point to POI table
             wavelength, delay = event.xdata, event.ydata
@@ -463,7 +468,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # Prepare fits #
         ################
         
-        fit_params = np.concatenate(([self.fitmodel.irf], self.fitmodel.model.K))
+        fit_params = np.concatenate(([self.fitmodel.irf, self.fitmodel.tzero], self.fitmodel.model.K))
         deltaA_residuals = self.fitmodel.calc_model_deltaA_residual_matrix(fit_params)
         model_kinetics = self.fitmodel.calc_model_kinetic_traces(fit_params)
         model_spectra = self.fitmodel.calc_model_species_spectra(fit_params)
@@ -549,7 +554,8 @@ class SurfaceXplorerPythonGui(tk.Tk):
             f.write('Model: ' + self.fitmodel.model.name + '\n\n')
             f.write('Initial populations: ' + str(self.fitmodel.model.initial_populations) + '\n\n')
             f.write('IRF = ' + str(self.fitmodel.irf) + ' +- ' + str(self.fitmodel.fit_errors[0]) + '\n')
-            for name, value, error in zip(self.fitmodel.model.parameter_names, self.fitmodel.model.K, self.fitmodel.fit_errors[1:]):
+            f.write('t0 = ' + str(self.fitmodel.tzero) + ' +- ' + str(self.fitmodel.fit_errors[1]) + '\n')
+            for name, value, error in zip(self.fitmodel.model.parameter_names, self.fitmodel.model.K, self.fitmodel.fit_errors[2:]):
                 f.write(name + ': ' + str(value) + ' +- ' + str(error) + '\n')
             f.write('\nCovariance matrix: \n')
             f.write(str(self.fitmodel.covariance_matrix) + '\n\n')
