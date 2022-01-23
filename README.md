@@ -5,7 +5,7 @@ Python GUI for transient absorption data correction and fitting
 
 Added features:
 1. SVD filtering
-2. t0 fitting
+2. Time-zero fitting
 
 ## updated 10/08/2021
 
