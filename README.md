@@ -1,6 +1,12 @@
 # SurfaceXplorerPython
 Python GUI for transient absorption data correction and fitting
 
+## updated 01/23/2022
+
+Added features:
+1. SVD filtering
+2. t0 fitting
+
 ## updated 10/08/2021
 
 To be able to run "SurfaceXplorerPython" you need to have Python installed on your computer.
