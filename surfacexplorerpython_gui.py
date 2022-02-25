@@ -2,6 +2,7 @@ import tkinter as tk
 
 import numpy as np
 import scipy.ndimage
+import scipy.interpolate
 
 import os
 import time
@@ -68,12 +69,15 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.file_menu = tk.Menu(self.menubar)
         self.surface_menu = tk.Menu(self.menubar)
         self.crop_menu = tk.Menu(self.surface_menu)
+        self.filter_menu = tk.Menu(self.surface_menu)
         self.fitting_menu = tk.Menu(self.menubar)
+        self.compare_menu = tk.Menu(self.menubar)
         
         # create menu items with labels and separators. Order matters!!!
         self.menubar.add_cascade(menu=self.file_menu, label='File')
         self.menubar.add_cascade(menu=self.surface_menu, label='Surface')
         self.menubar.add_cascade(menu=self.fitting_menu, label='Fitting')
+        self.menubar.add_cascade(menu=self.compare_menu, label='Compare')
         self.file_menu.add_command(label='Open...', command=self.open_file)
         self.file_menu.add_separator()
         self.file_menu.add_command(label='Save As...', command=self.save_as)
@@ -84,7 +88,10 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.surface_menu.add_command(label='Subtract background...', command=self.subtract_background)
         self.surface_menu.add_command(label='Chirp correct...', command=self.chirp_correct)
         self.surface_menu.add_command(label='SVD filter', command=self.SVD_filter)
-        self.surface_menu.add_command(label='Apply Gaussian filter', command=self.apply_gaussian_filter)
+        self.surface_menu.add_cascade(menu=self.filter_menu, label='Smooth')
+        self.filter_menu.add_command(label='Apply Gaussian filter', command=self.apply_gaussian_filter)
+        self.filter_menu.add_command(label='Apply Median filter', command=self.apply_median_filter)
+        self.filter_menu.add_command(label='Apply DCT filter', command=self.apply_dct_filter)
         self.surface_menu.add_command(label='Quick create POIs (fs)', command=self.quick_create_POIs_fs)
         self.surface_menu.add_command(label='Quick create POIs (ns)', command=self.quick_create_POIs_ns)
         self.surface_menu.add_separator()
@@ -92,12 +99,16 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.surface_menu.add_command(label='Undo all changes', command=self.undo_all_changes)
         self.fitting_menu.add_checkbutton(label='Fitting mode', onvalue = True, offvalue = False, variable=self.fitting_mode, command=self.refresh_plots)
         self.fitting_menu.add_command(label='Edit initial guess', command=self.edit_initial_guess)
+        self.compare_menu.add_command(label='Compare kinetics...', command=self.compare_kinetics)
+        self.compare_menu.add_command(label='Compare spectra...', command=self.compare_spectra)
+        self.compare_menu.add_command(label='Compare surfaces...', command=self.compare_surfaces)
         
         # disable some menus at startup
         self.file_menu.entryconfig('Save As...', state='disabled')
         self.file_menu.entryconfig('Export data', state='disabled')
         self.menubar.entryconfig('Surface', state='disabled')
         self.menubar.entryconfig('Fitting', state='disabled')
+        self.menubar.entryconfig('Compare', state='disabled')
         
         # show the menubar at the top of the main GUI
         self.config(menu=self.menubar)
@@ -123,6 +134,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.file_menu.entryconfig('Export data', state='normal')
         self.menubar.entryconfig('Surface', state='normal')
         self.menubar.entryconfig('Fitting', state='normal')
+        self.menubar.entryconfig('Compare', state='normal')
         
         # enable adding POIs
         self.event_add_POI = self.plot_area_frame.fig.canvas.mpl_connect('button_press_event', self.add_POI_button_click)
@@ -372,7 +384,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
     def apply_gaussian_filter(self):
         
         # apply Gaussian filter
-        self.TA.deltaA = scipy.ndimage.gaussian_filter(self.TA.deltaA, sigma=0.5)
+        self.TA.deltaA = scipy.ndimage.gaussian_filter(self.TA.deltaA, sigma=0.75)
         
         # Refresh plots
         self.refresh_plots()
@@ -380,13 +392,41 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # update log
         self.log_frame.update_log('TA data smoothed using Gaussian filter')
         
+    def apply_median_filter(self):
+        
+        # apply median filter
+        self.TA.deltaA = scipy.ndimage.median_filter(self.TA.deltaA, 3)
+        
+        # Refresh plots
+        self.refresh_plots()
+        
+        # update log
+        self.log_frame.update_log('TA data smoothed using median filter')
+        
+    def apply_dct_filter(self):
+        
+        # calculate DCT
+        deltaA_DCT = scipy.fft.dct(scipy.fft.dct(self.TA.deltaA, axis=0), axis=1)
+        
+        # filter high-frequency spectral components
+        deltaA_DCT[40:,:] = 0.0
+        
+        # calculate inverse DCT
+        self.TA.deltaA = scipy.fft.idct(scipy.fft.idct(deltaA_DCT, axis=0), axis=1)
+        
+        # Refresh plots
+        self.refresh_plots()
+        
+        # update log
+        self.log_frame.update_log('TA data smoothed using DCT filter')
+    
     def quick_create_POIs_fs(self):
         
         # clear old POIs
         self.clear_all_POIs()
 
         # add new POIs
-        requested_delays = np.array([-1, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 8000])
+        requested_delays = np.array([0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 8000])
         spectral_range = self.plot_area_frame.ax1.get_xlim()
         wavelengths = np.linspace(spectral_range[0], spectral_range[1], requested_delays.size)
         for i in range(requested_delays.size):
@@ -412,7 +452,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.clear_all_POIs()
 
         # add new POIs
-        requested_delays = np.array([-0.05, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10])
+        requested_delays = np.array([0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10])
         spectral_range = self.plot_area_frame.ax1.get_xlim()
         wavelengths = np.linspace(spectral_range[0], spectral_range[1], requested_delays.size)
         for i in range(requested_delays.size):
@@ -675,6 +715,63 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # update log
         self.log_frame.update_log('New initial guess of fitting parameters')
         
-    def inverse_deltaA_scale(self):
+    def compare_kinetics(self):
         
-        self.kinetics_y_scale = 'inverse'
+        # open the file to be compared and initialize TA_compare structure
+        filepath = tk.filedialog.askopenfilename(
+            master = self,
+            title = 'Select data to compare...',
+            multiple = False,
+            filetypes = [('CSV files','*.csv')]
+            )
+        if filepath=='':
+            return
+        self.TA_compare = TransientAbsorption(filepath)
+        
+        # # interpolate wavelength axis of self.TA_compare to that of self.TA
+        # TA_interp2d_func = scipy.interpolate.interp2d(self.TA_compare.delay, self.TA_compare.wavelength, self.TA_compare.deltaA)
+        # self.TA_compare.deltaA = np.flipud(TA_interp2d_func(self.TA.delay, self.TA.wavelength))
+
+        # plot the comparison
+        self.plot_area_frame.plot_compared_kinetics(self.TA, self.TA_compare)
+        
+    def compare_spectra(self):
+        
+        # open the file to be compared and initialize TA_compare structure
+        filepath = tk.filedialog.askopenfilename(
+            master = self,
+            title = 'Select data to compare...',
+            multiple = False,
+            filetypes = [('CSV files','*.csv')]
+            )
+        if filepath=='':
+            return
+        self.TA_compare = TransientAbsorption(filepath)
+        
+        # # interpolate wavelength axis of self.TA_compare to that of self.TA
+        # TA_interp2d_func = scipy.interpolate.interp2d(self.TA_compare.delay, self.TA_compare.wavelength, self.TA_compare.deltaA)
+        # self.TA_compare.deltaA = np.flipud(TA_interp2d_func(self.TA.delay, self.TA.wavelength))
+
+        # plot the comparison
+        self.plot_area_frame.plot_compared_spectra(self.TA, self.TA_compare)
+        
+    def compare_surfaces(self):
+        
+        # open the file to be compared and initialize TA_compare structure
+        filepath = tk.filedialog.askopenfilename(
+            master = self,
+            title = 'Select data to compare...',
+            multiple = False,
+            filetypes = [('CSV files','*.csv')]
+            )
+        if filepath=='':
+            return
+        self.TA_compare = TransientAbsorption(filepath)
+
+        # plot the comparison
+        self.plot_area_frame.plot_compared_surfaces(self.TA, self.TA_compare)
+        
+        
+        
+        
+        

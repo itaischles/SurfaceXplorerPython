@@ -30,7 +30,11 @@ class TransientAbsorption:
         rawdata = np.genfromtxt(filepath, delimiter='\t', max_rows=max_rows_to_read)
         if rawdata.ndim != 2: # This happens if the delimiter is not '\t' (tab) but ',' (comma)
             rawdata = np.genfromtxt(filepath, delimiter=',', max_rows=max_rows_to_read)
-            
+        
+        # # make sure the delay times are sorted (they are not always sorted coming out of the nsTAM setup)
+        # if not (np.diff(rawdata[0,:])>0).all():
+        #     rawdata = np.concatenate((np.asmatrix(rawdata[:,0]).T,rawdata[:,np.argsort(rawdata[0,1:])+1]), axis=1)
+        
         return rawdata
     
     def crop(self, delay_range, wavelength_range, method):

@@ -6,6 +6,15 @@ from scipy.optimize import least_squares
 
 #####################################################################################################################
 #####################################################################################################################
+#
+# Walk-through:
+# 1. fit_model() uses least_squares(P, _calc_residuals) where P is a fitting parameters vector, and _calc_residuals() is the cost function
+# 2. _calc_residuals(P) calls calc_model_kinetic_traces(P) to calculate the weighted kinetic traces from the normalized species decays
+# 3. calc_model_kinetic_traces(P) calls calc_species_decays(P) to construct the species decays using the model by solving the differential equations and convolving with IRF in _convolve_with_IRF()
+#
+#####################################################################################################################
+#####################################################################################################################
+
 
 class FitModel:
     
@@ -115,7 +124,15 @@ class FitModel:
         
         # calculate the species decay traces (as column vectors) and convolve with IRF.
         # The solve_ivp method 'LSODA' appears to be much faster (~0.01 sec) than the default 'RK45' (~0.2 sec)
-        species_decays = solve_ivp(lambda t,y: self.model.diffeq(t,y,K), t_span, self.model.initial_populations, t_eval=self.TA.delay, method='LSODA').y.transpose()
+        if self.model.type == 'diffeq':
+            species_decays = solve_ivp(lambda t,y: self.model.diffeq(t,y,K), t_span, self.model.initial_populations, t_eval=self.TA.delay, method='LSODA').y.transpose()
+        elif self.model.type == 'other':
+            species_decays = self.model.get_species_decay(self.TA.delay, K)
+            
+        # normalize species
+        for i in range(len(species_decays[0,:])):
+            species_decays[:,i] = species_decays[:,i]/max(species_decays[:,i])
+        # colvolve with IRF
         species_decays = self._convolve_with_IRF(species_decays, irf, tzero)
         
         return species_decays
@@ -196,11 +213,11 @@ class FitModel:
         P0 = np.concatenate(([self.irf, self.tzero], self.model.K))
         
         # set bounds on fitting parameters and make sure that for each parameter, lower and upper bounds are different
-        lower_bounds = list(map(lambda x: x-1e-15, self.lower_bounds))
-        upper_bounds = list(map(lambda x: x+1e-15, self.upper_bounds))
+        lower_bounds = list(map(lambda x: x-1e-10, self.lower_bounds))
+        upper_bounds = list(map(lambda x: x+1e-10, self.upper_bounds))
         fit_param_bounds = (lower_bounds, upper_bounds)
         
-        # use least-squares to calculate fitting parameters for the vector of fitting parameters P=[irf,K]
+        # use least-squares to calculate fitting parameters for the vector of fitting parameters P=[irf,tzero,K]
         self.optimized_result = least_squares(self._calc_residuals,
                                               x0=P0,
                                               x_scale=np.concatenate(([self.irf, 0.1], self.model.K)),

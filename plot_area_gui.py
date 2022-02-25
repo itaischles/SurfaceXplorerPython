@@ -71,8 +71,9 @@ class PlotAreaFrame(tk.Frame):
         self.ax1.cla()
         
         deltaA = np.flipud(TA.deltaA).transpose()
-        scaledTA = -np.arctan(deltaA/np.max(deltaA)) # just for plotting! normalize deltaA and use arctan transformation
-        self.ax1.pcolormesh(TA.wavelength[::-1], TA.delay, scaledTA, shading='nearest', cmap=cm.RdBu)
+        scaledTA = np.arctan(deltaA/np.max(deltaA)) # just for plotting! normalize deltaA and use arctan transformation
+        self.ax1.pcolormesh(TA.wavelength[::-1], TA.delay, scaledTA, shading='nearest', cmap=cm.twilight)
+        self.ax1.contour(TA.wavelength[::-1], TA.delay, scaledTA, colors='white', alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
         self.ax1.set_title(r'$\Delta$A surface')
             
         # add the points of interest
@@ -206,6 +207,76 @@ class PlotAreaFrame(tk.Frame):
         
         # show plot on GUI
         self.ax4.figure.canvas.draw()
+        
+    def plot_compared_kinetics(self, TA, TA_compare):
+        
+        plt.figure()
+        ax_kinetic_compare = plt.axes()        
+        
+        for n,iid in enumerate(self.POI_table.get_children()):
+            wavelength, delay, color = self.POI_table.get_poi(iid)
+            wavelength_index = np.absolute(wavelength-TA.wavelength).argmin()
+            wavelength_index_compare = np.absolute(wavelength-TA_compare.wavelength).argmin()
+            ax_kinetic_compare.plot(TA.delay, TA.deltaA[wavelength_index,:]/np.max(np.abs(TA.deltaA[wavelength_index,:])), lw=3, alpha=0.5, color=plt.cm.tab20(2*n), label=str(wavelength)+' nm, original')
+            ax_kinetic_compare.plot(TA_compare.delay, TA_compare.deltaA[wavelength_index_compare,:]/np.max(np.abs(TA_compare.deltaA[wavelength_index_compare,:])), lw=3, alpha=0.5, color=plt.cm.tab20(2*n+1), label=str(wavelength)+' nm, compared')
+            
+        ax_kinetic_compare.set_xscale('symlog', linthresh=1.0, linscale=0.35)
+        ax_kinetic_compare.set_xlim((min(TA.delay),max(TA.delay)))
+                
+        # add line at deltaA=0
+        ax_kinetic_compare.plot([min(TA.delay), max(TA.delay)],[0,0], linewidth=0.3, color=(0.2,0.2,0.2))
+        
+        # update axis labels
+        ax_kinetic_compare.set_xlabel('Delay')
+        ax_kinetic_compare.set_ylabel(r'Norm. $\Delta$A')
+        ax_kinetic_compare.legend()
+        
+    def plot_compared_spectra(self, TA, TA_compare):
+        
+        plt.figure()
+        ax_spectrum_compare = plt.axes()
+        
+        
+        for n,iid in enumerate(self.POI_table.get_children()):
+            wavelength, delay, color = self.POI_table.get_poi(iid)
+            delay_index = np.absolute(delay-TA.delay).argmin()
+            delay_index_compare = np.absolute(delay-TA_compare.delay).argmin()
+            ax_spectrum_compare.plot(TA.wavelength, TA.deltaA[:,delay_index], lw=3, alpha=0.5, color=plt.cm.tab20(2*n), label=str(delay)+' ps, original')
+            ax_spectrum_compare.plot(TA_compare.wavelength, TA_compare.deltaA[:,delay_index_compare], lw=3, alpha=0.5, color=plt.cm.tab20(2*n+1), label=str(delay)+' ps, compared')
+                
+        # add line at deltaA=0
+        ax_spectrum_compare.plot([min(TA.wavelength), max(TA.wavelength)],[0,0], linewidth=0.3, color=(0.2,0.2,0.2))
+        
+        # update axis labels
+        ax_spectrum_compare.set_xlabel('Wavelength')
+        ax_spectrum_compare.set_ylabel(r'$\Delta$A $\times 10^3$')
+        ax_spectrum_compare.legend()
+        
+    def plot_compared_surfaces(self, TA, TA_compare):
+        
+        plt.figure()
+        ax_surface_compare = plt.axes()
+ 
+        deltaA = np.flipud(TA.deltaA).transpose()
+        scaledTA = np.arctan(deltaA/np.max(deltaA)) # just for plotting! normalize deltaA and use arctan transformation
+        deltaA_compare = np.flipud(TA_compare.deltaA).transpose()
+        scaledTA_compare = np.arctan(deltaA_compare/np.max(deltaA_compare)) # just for plotting! normalize deltaA and use arctan transformation
+        
+        # ax_surface_compare.pcolormesh(TA.wavelength[::-1], TA.delay, scaledTA, shading='nearest', cmap=cm.twilight)
+        ax_surface_compare.contour(TA.wavelength[::-1], TA.delay, scaledTA, alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
+        # ax_surface_compare.pcolormesh(TA_compare.wavelength[::-1], TA_compare.delay, scaledTA_compare, shading='nearest', cmap=cm.twilight)
+        ax_surface_compare.contour(TA_compare.wavelength[::-1], TA_compare.delay, scaledTA_compare, alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
+        
+        ax_surface_compare.set_xlim((min(TA.wavelength),max(TA.wavelength)))
+        
+        ax_surface_compare.set_yscale('symlog', linthresh=1.0, linscale=0.35)
+        xlims = ax_surface_compare.get_xlim()
+        ylims = ax_surface_compare.get_ylim()
+        ax_surface_compare.set_xlim(xlims)
+        ax_surface_compare.set_ylim(ylims)
+        ax_surface_compare.set_xlabel('Wavelength')
+        ax_surface_compare.set_ylabel('Delay')
+        
 
 #####################################################################################################################
 #####################################################################################################################
@@ -237,7 +308,7 @@ class POITable(ttk.Treeview):
         self.column('col#2', width=100)
         
         # setup colors for POIs
-        self.setup_colors(num_colors=15)
+        self.setup_colors(num_colors=14)
         
     def insert_poi(self, wavelength, delay):
         
@@ -303,7 +374,7 @@ class POITable(ttk.Treeview):
         
         # set color list (in hex format) and color_indices list that will cyclicly roll when a new point is added
         cm_selector = np.linspace(0.9, 0.1, num_colors)
-        self.colors = [to_hex(cm.turbo(x)) for x in cm_selector]
+        self.colors = [to_hex(cm.rainbow(x)) for x in cm_selector]
         self.color_indices = np.arange(num_colors) # the first index (=0) is the always the next color
         
         # associate color tags with row color

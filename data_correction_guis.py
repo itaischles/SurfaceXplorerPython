@@ -84,9 +84,10 @@ class ChirpCorrectGui(tk.Toplevel):
         
         # plot TA surface
         deltaA = np.flipud(self.TA.deltaA).transpose()
-        scaledTA = -np.arctan(deltaA*1000)
+        scaledTA = np.arctan(deltaA/np.max(deltaA)) # just for plotting! normalize deltaA and use arctan transformation
         self.ax.cla()
-        self.ax.pcolormesh(self.TA.wavelength[::-1], self.TA.delay, scaledTA, shading='nearest', cmap=cm.RdBu)
+        self.ax.pcolormesh(self.TA.wavelength[::-1], self.TA.delay, scaledTA, shading='nearest', cmap=cm.twilight)
+        self.ax.contour(self.TA.wavelength[::-1], self.TA.delay, scaledTA, colors='white', alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
         
         # plot sampled chirp points
         for iid in self.point_list.get_children():
