@@ -1,6 +1,11 @@
 # SurfaceXplorerPython
 Python GUI for transient absorption data correction and fitting
 
+## updated 02/25/2022
+
+Added features:
+fitting to decay rate distributions ( A(dist)->Gnd, and A(dist)->B(dist)->Gnd )
+
 ## updated 01/23/2022
 
 Added features:
