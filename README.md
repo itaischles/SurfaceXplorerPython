@@ -1,6 +1,13 @@
 # SurfaceXplorerPython
 Python GUI for transient absorption data correction and fitting
 
+## updated 03/04/2022
+
+Now fits are done globally using the entire deltaA matrix instead of single-wavelength fitting as before.
+This was found to produce much better fits than single wavelength fitting (however, this takes more time to fit).
+Therefore, the fitting can be done even without selecting wavelengths by the user, and the selected wavelengths are
+only for displaying the fits on the selected kinetic traces.
+
 ## updated 02/25/2022
 
 Added features:
