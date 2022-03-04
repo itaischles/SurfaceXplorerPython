@@ -35,10 +35,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # load the models from the model library file (should be located in this folder!)
         self.fit_model_classes, self.fit_model_names = self.read_model_library()
         
-        # initialize boolean variables
-        self.fitting_mode = tk.BooleanVar()
-        self.fitting_mode.set(False)
-        
         # Create frames that sit inside this main frame
         self.filepath_frame = FilePathFrame(self)
         self.plot_area_frame = PlotAreaFrame(self)
@@ -97,7 +93,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.surface_menu.add_separator()
         self.surface_menu.add_command(label='Clear all POIs', command=self.clear_all_POIs)       
         self.surface_menu.add_command(label='Undo all changes', command=self.undo_all_changes)
-        self.fitting_menu.add_checkbutton(label='Fitting mode', onvalue = True, offvalue = False, variable=self.fitting_mode, command=self.refresh_plots)
         self.fitting_menu.add_command(label='Edit initial guess', command=self.edit_initial_guess)
         self.compare_menu.add_command(label='Compare kinetics...', command=self.compare_kinetics)
         self.compare_menu.add_command(label='Compare spectra...', command=self.compare_spectra)
@@ -139,12 +134,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # enable adding POIs
         self.event_add_POI = self.plot_area_frame.fig.canvas.mpl_connect('button_press_event', self.add_POI_button_click)
         
-        # disable fitting button
-        self.fitting_user_input_frame.fit_button.configure(state='disabled')
-        
-        # enable prompting user to add POIs to enable fitting
-        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
-        
         # create a fit model object
         fit_model_class = getattr(model_library, self.fit_model_classes[0])
         self.fitmodel = FitModel(self.TA, fit_model_class())
@@ -152,6 +141,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # re-initialize fitting GUI
         self.fitting_user_input_frame.selected_model.set(self.fit_model_names[0])
         self.fitting_user_input_frame.fit_params_table.populate(self.fitmodel)
+        self.fitting_user_input_frame.fit_button.configure(text='Fit', state='normal')
         
         # Refresh plots
         self.refresh_plots()
@@ -200,21 +190,11 @@ class SurfaceXplorerPythonGui(tk.Tk):
     
     def refresh_plots(self):
         
-        # update the fitting model object
-        wavelengths = self.plot_area_frame.POI_table.get_all_wavelengths()
-        self.fitmodel.get_experimental_kinetic_traces(wavelengths)
-        
-        # Refresh plots
-        if self.fitting_mode.get()==True:
-            self.plot_area_frame.refresh_fig1(self.TA, self.fitmodel)
-            self.plot_area_frame.refresh_fig2(self.TA, self.fitmodel)
-            self.plot_area_frame.refresh_fig3(self.TA, self.fitmodel)
-            self.plot_area_frame.refresh_fig4(self.TA, self.fitmodel)
-        else:
-            self.plot_area_frame.refresh_fig1(self.TA, [])
-            self.plot_area_frame.refresh_fig2(self.TA, [])
-            self.plot_area_frame.refresh_fig3(self.TA, [])
-            self.plot_area_frame.refresh_fig4(self.TA, [])
+        # # Refresh plots
+        self.plot_area_frame.refresh_fig1(self.TA, self.fitmodel)
+        self.plot_area_frame.refresh_fig2(self.TA, self.fitmodel)
+        self.plot_area_frame.refresh_fig3(self.TA, self.fitmodel)
+        self.plot_area_frame.refresh_fig4(self.TA, self.fitmodel)
         
         # update the plot toolbar
         self.plot_area_frame.toolbar.update()
@@ -237,12 +217,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
             
             # update log
             self.log_frame.update_log('TA data chirp corrected')
-            
-            # disable fitting button
-            self.fitting_user_input_frame.fit_button.configure(state='disabled')
-            
-            # enable prompting user to add POIs to enable fitting
-            self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
         
         # refresh plots
         self.refresh_plots()
@@ -260,10 +234,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
             self.log_frame.update_log('TA data SVD filtered using '+str(len(SVD_components))+' component(s)')
             # clear all POIs if they were present before SVD filtering
             self.plot_area_frame.POI_table.clear_table()
-            # disable fitting button
-            self.fitting_user_input_frame.fit_button.configure(state='disabled')
-            # enable prompting user to add POIs to enable fitting
-            self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
             # refresh plots
             self.refresh_plots()
         
@@ -281,12 +251,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
                     
         # apply the crop function to the TA surface
         self.TA.crop(delay_range, wavelength_range, method='keep')
-        
-        # disable fitting button
-        self.fitting_user_input_frame.fit_button.configure(state='disabled')
-        
-        # enable prompting user to add POIs to enable fitting
-        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
         
         # Refresh plots, reset cursor object, and bind it to mouse movement over axis
         self.refresh_plots()
@@ -309,12 +273,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # apply the crop function to the TA surface
         self.TA.crop(delay_range, wavelength_range, method='delete')
         
-        # disable fitting button
-        self.fitting_user_input_frame.fit_button.configure(state='disabled')
-        
-        # enable prompting user to add POIs to enable fitting
-        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
-        
         # Refresh plots, reset cursor object, and bind it to mouse movement over axis
         self.refresh_plots()
         
@@ -330,12 +288,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
             wavelength, delay = event.xdata, event.ydata
             self.plot_area_frame.POI_table.insert_poi(wavelength, delay)
             
-            # enable fit button
-            self.fitting_user_input_frame.fit_button.configure(state='normal')
-            
-            # hide prompting user to add POIs to enable fitting
-            self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid_forget()
-            
             # refresh plots
             self.refresh_plots()
     
@@ -346,12 +298,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
         
         # reset colors
         self.plot_area_frame.POI_table.setup_colors(num_colors=15)
-        
-        # disable fit button
-        self.fitting_user_input_frame.fit_button.configure(state='disabled')
-        
-        # enable prompting user to add POIs to enable fitting
-        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
         
         # Refresh plots
         self.refresh_plots()
@@ -368,12 +314,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
             
             # reset TA
             self.TA.reset_TA_data()
-            
-            # disable fitting button
-            self.fitting_user_input_frame.fit_button.configure(state='disabled')
-            
-            # enable prompting user to add POIs to enable fitting
-            self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
         
             # Refresh plots
             self.refresh_plots()
@@ -433,12 +373,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
             wavelength = wavelengths[i]
             delay = self.TA.delay[np.argmin(abs(requested_delays[i]-self.TA.delay))]
             self.plot_area_frame.POI_table.insert_poi(wavelength, delay)
-        
-        # enable fitting button
-        self.fitting_user_input_frame.fit_button.configure(state='normal')
-        
-        # hide prompting user to add POIs to enable fitting
-        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid_forget()
             
         # refresh plots
         self.refresh_plots()
@@ -459,12 +393,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
             wavelength = wavelengths[i]
             delay = self.TA.delay[np.argmin(abs(requested_delays[i]-self.TA.delay))]
             self.plot_area_frame.POI_table.insert_poi(wavelength, delay)
-        
-        # enable fitting button
-        self.fitting_user_input_frame.fit_button.configure(state='normal')
-        
-        # hide prompting user to add POIs to enable fitting
-        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid_forget()
             
         # refresh plots
         self.refresh_plots()
@@ -510,12 +438,12 @@ class SurfaceXplorerPythonGui(tk.Tk):
         
         fit_params = np.concatenate(([self.fitmodel.irf, self.fitmodel.tzero], self.fitmodel.model.K))
         deltaA_residuals = self.fitmodel.calc_model_deltaA_residual_matrix(fit_params)
-        model_kinetics = self.fitmodel.calc_model_kinetic_traces(fit_params)
+        model_kinetics = self.fitmodel.calc_model_deltaA(fit_params)[wavelength_indices,:].transpose()
         model_spectra = self.fitmodel.calc_model_species_spectra(fit_params)
         model_populations = self.fitmodel.calc_species_decays(fit_params)
         
         # add the labels for each kinetic trace (label=wavelength)
-        model_kinetics = np.concatenate((np.array(self.fitmodel.check_wavelengths,ndmin=2),model_kinetics), axis=0)
+        model_kinetics = np.concatenate((np.array(self.TA.wavelength[wavelength_indices],ndmin=2),model_kinetics), axis=0)
         
         # add delay and wavelength vectors as first columns
         model_spectra = np.concatenate((first_col_spectra[1:], model_spectra), axis=1)
@@ -617,12 +545,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
             
         # update log
         self.log_frame.update_log('Pre-t0 background subtracted from TA data')
-        
-        # disable fitting button
-        self.fitting_user_input_frame.fit_button.configure(state='disabled')
-        
-        # enable prompting user to add POIs to enable fitting
-        self.fitting_user_input_frame.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
         
         # refresh plots
         self.refresh_plots()

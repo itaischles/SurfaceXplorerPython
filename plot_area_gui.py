@@ -100,23 +100,15 @@ class PlotAreaFrame(tk.Frame):
         
         self.ax2.cla()
         
-        if fitmodel != []: # plot the experimental and fitted kinetic traces overlaid
-            
-            # get fitting parameters from the fitmodel object
-            fit_params = np.concatenate(([fitmodel.irf, fitmodel.tzero], fitmodel.model.K))
+        # plot the experimental and fitted kinetic traces overlaid
+        # get fitting parameters from the fitmodel object
+        fit_params = np.concatenate(([fitmodel.irf, fitmodel.tzero], fitmodel.model.K))
 
-            for i,iid in enumerate(self.POI_table.get_children()):
-                wavelength, delay, color = self.POI_table.get_poi(iid)
-                wavelength_index = np.absolute(wavelength-TA.wavelength).argmin()
-                self.ax2.plot(TA.delay, TA.deltaA[wavelength_index,:]*1000, color=color, marker='o', linestyle='none', markersize=3, alpha=0.25, markeredgecolor='none')
-                self.ax2.plot(TA.delay, fitmodel.calc_model_kinetic_traces(fit_params)[:,i]*1000, color=color, lw=1)
-                
-        else: # plot only the experimental kinetic traces
-            
-            for iid in self.POI_table.get_children():
-                wavelength, delay, color = self.POI_table.get_poi(iid)
-                wavelength_index = np.absolute(wavelength-TA.wavelength).argmin()
-                self.ax2.plot(TA.delay, TA.deltaA[wavelength_index,:]*1000, lw=1, color=color, alpha=0.75)
+        for i,iid in enumerate(self.POI_table.get_children()):
+            wavelength, delay, color = self.POI_table.get_poi(iid)
+            wavelength_index = np.absolute(wavelength-TA.wavelength).argmin()
+            self.ax2.plot(TA.delay, TA.deltaA[wavelength_index,:]*1000, color=color, marker='o', linestyle='none', markersize=3, alpha=0.25, markeredgecolor='none')
+            self.ax2.plot(TA.delay, fitmodel.calc_model_deltaA(fit_params)[wavelength_index,:]*1000, color=color, lw=1)
                     
         self.ax2.set_xscale('symlog', linthresh=1.0, linscale=0.35)
         self.ax2.set_xlim((min(TA.delay),max(TA.delay)))
@@ -138,30 +130,12 @@ class PlotAreaFrame(tk.Frame):
         
         self.ax3.cla()
         
-        if fitmodel != []: # plot the species associated spectra
-            
-            # get fitting parameters from the fitmodel object
-            fit_params = np.concatenate(([fitmodel.irf, fitmodel.tzero], fitmodel.model.K))
-            
-            # calculate normalized species associated spectra
-            model_species_spectra = fitmodel.calc_model_species_spectra(fit_params)
-            model_species_spectra = fitmodel.normalize_species_spectra(model_species_spectra)
-   
-            # plot the species spectra
-            for i in range(model_species_spectra.shape[1]):
-                self.ax3.plot(TA.wavelength, model_species_spectra[:,i], label='species '+str(i+1))
-                self.ax3.set_ylabel('Normalized SAS')
-                
-            # update legend
-            self.ax3.legend()
-        
-        else: # plot the spectra of the selected wavelengths (in POIs)
-            
-            for iid in self.POI_table.get_children():
-                wavelength, delay, color = self.POI_table.get_poi(iid)
-                delay_index = np.argmin(abs(TA.delay-delay))
-                self.ax3.plot(TA.wavelength, TA.deltaA[:,delay_index]*1000, lw=1, color=color, alpha=0.75)
-                self.ax3.set_ylabel(r'$\Delta$A $\times 10^3$')
+        # plot the spectra of the selected wavelengths (in POIs)
+        for iid in self.POI_table.get_children():
+            wavelength, delay, color = self.POI_table.get_poi(iid)
+            delay_index = np.argmin(abs(TA.delay-delay))
+            self.ax3.plot(TA.wavelength, TA.deltaA[:,delay_index]*1000, lw=1, color=color, alpha=0.75)
+            self.ax3.set_ylabel(r'$\Delta$A $\times 10^3$')
         
         # update axis labels
         self.ax3.set_xlabel('Wavelength')

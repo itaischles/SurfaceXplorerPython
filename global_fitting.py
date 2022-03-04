@@ -9,8 +9,8 @@ from scipy.optimize import least_squares
 #
 # Walk-through:
 # 1. fit_model() uses least_squares(P, _calc_residuals) where P is a fitting parameters vector, and _calc_residuals() is the cost function
-# 2. _calc_residuals(P) calls calc_model_kinetic_traces(P) to calculate the weighted kinetic traces from the normalized species decays
-# 3. calc_model_kinetic_traces(P) calls calc_species_decays(P) to construct the species decays using the model by solving the differential equations and convolving with IRF in _convolve_with_IRF()
+# 2. _calc_residuals(P) calls calc_model_deltaA(P) to calculate the model deltaA matrix from the normalized species decays
+# 3. calc_model_deltaA(P) calls calc_species_decays(P) to construct the species decays using the model by solving the differential equations and convolving with IRF in _convolve_with_IRF()
 #
 #####################################################################################################################
 #####################################################################################################################
@@ -28,8 +28,6 @@ class FitModel:
         self.tzero = tzero
         self.optimized_result = []
         self.fit_errors = np.ones(len(self.model.K)+1)*np.nan
-        self.check_wavelengths = [self.TA.wavelength[round(len(self.TA.wavelength)/2)]]
-        self.experiment_kinetic_traces = self.get_experimental_kinetic_traces(self.check_wavelengths)
         self.mean_squared_error = np.nan
         self.covariance_matrix = np.ones((len(self.fit_errors), len(self.fit_errors)))*np.nan
         
@@ -80,11 +78,11 @@ class FitModel:
     
     def _calc_residuals(self, P):
         
-        # calculate the model kinetic traces at the specified wavelengths using the fitting parameter vector P
-        model_kinetic_traces = self.calc_model_kinetic_traces(P)
+        # calculate the model deltaA matrix using the fitting parameter vector P
+        model_deltaA = self.calc_model_deltaA(P)
         
-        # calculate residuals at each delay (row) and wavelength (column)
-        residuals_as_matrix = self.experiment_kinetic_traces - model_kinetic_traces
+        # calculate residuals matrix
+        residuals_as_matrix = self.TA.deltaA - model_deltaA
         
         # flatten residuals to a 1d vector
         residuals_as_vector = np.reshape(residuals_as_matrix, newshape=residuals_as_matrix.size)
@@ -112,6 +110,20 @@ class FitModel:
         # get the parameter error estimations from the covariance matrix
         return np.sqrt(np.diagonal(self.covariance_matrix))
     
+    def calc_model_deltaA(self, P):
+        
+        # calculate the model species (population) decays
+        species_decays = self.calc_species_decays(P)
+        
+        # calculate coefficient matrix (C) of converting from deltaA (D) to species (S): D=C*S -> C=D*inv(S)
+        pseudo_inv_species_decays = np.linalg.pinv(species_decays)
+        coeffs = np.matmul(pseudo_inv_species_decays, self.TA.deltaA.T)
+        
+        # calculate model deltaA matrix using this coefficient matrix.
+        model_deltaA = np.matmul(species_decays, coeffs).T
+        
+        return model_deltaA
+        
     def calc_species_decays(self, P):
         
         # extract fitting parameters from fitting parameter vector P
@@ -137,35 +149,31 @@ class FitModel:
         
         return species_decays
     
-    def get_experimental_kinetic_traces(self, check_wavelengths):
-        
-        self.check_wavelengths = check_wavelengths
+    def get_experimental_kinetic_traces(self, wavelengths):
         
         # make sure at least one wavelength is provided by the user
-        if self.check_wavelengths==[]:
+        if wavelengths==[]:
             return
         
-        # get wavelength indices for single wavelength fitting
-        wavelength_inds = [np.argmin(abs(wavelength-self.TA.wavelength)) for wavelength in np.array(self.check_wavelengths)]
+        # get wavelength indices
+        wavelength_inds = [np.argmin(abs(wavelength-self.TA.wavelength)) for wavelength in np.array(wavelengths)]
 
         # get the column vectors of the data decay traces at the selected wavelengths
-        self.experiment_kinetic_traces = self.TA.deltaA[wavelength_inds,:].transpose()
+        experiment_kinetic_traces = self.TA.deltaA[wavelength_inds,:].transpose()
         
-        return self.experiment_kinetic_traces
+        return experiment_kinetic_traces
     
-    def calc_model_kinetic_traces(self, P):
- 
-        # calculate the model species (population) decays
-        species_decays = self.calc_species_decays(P)
- 
-        # calculate coefficient matrix (C) of converting from decay traces (D) to species (S): D=C*S -> C=D*inv(S)
-        # note that the number of decay traces (number of selected wavelengths) need not be the same as the number of species
-        pseudo_inv_species_decays = np.linalg.pinv(species_decays)
-        coeffs = np.matmul(pseudo_inv_species_decays, self.experiment_kinetic_traces)
+    def get_model_kinetic_traces(self, P, wavelengths):
         
-        # calculate model kinetic traces using this coefficient matrix.
-        # This says what the amplitudes of the different species are in 'making' the experimental decay traces
-        model_kinetic_traces = np.matmul(species_decays, coeffs)
+        # make sure at least one wavelength is provided by the user
+        if wavelengths==[]:
+            return
+        
+        # get wavelength indices
+        wavelength_inds = [np.argmin(abs(wavelength-self.TA.wavelength)) for wavelength in np.array(wavelengths)]
+
+        # get the column vectors of the model decay traces at the selected wavelengths
+        model_kinetic_traces = self.calc_model_deltaA[wavelength_inds,:].transpose()
         
         return model_kinetic_traces
     
@@ -193,17 +201,8 @@ class FitModel:
     
     def calc_model_deltaA_residual_matrix(self, P):
         
-        # calculate the model species (population) decays
-        species_decays = self.calc_species_decays(P)
-        
-        # calculate the model species spectra
-        species_spectra = self.calc_model_species_spectra(P)
-        
-        # calculate model deltaA matrix
-        model_deltaA = np.matmul(species_spectra, species_decays.transpose())
-        
         # calculate deltaA residual matrix
-        deltaA_residuals = self.TA.deltaA - model_deltaA
+        deltaA_residuals = self.TA.deltaA - self.calc_model_deltaA(P)
         
         return deltaA_residuals
         

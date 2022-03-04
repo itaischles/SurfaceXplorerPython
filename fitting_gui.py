@@ -25,15 +25,15 @@ class FittingUserInputFrame(tk.Frame):
         # initialize fit button
         self.fit_button = ttk.Button(self, text='Fit', state='disabled')
         
-        # initialize label promting the user to select POIs for fitting
-        self.promt_user_to_add_POIs_label = ttk.Label(self, text='Please add POIs to enable single-wavelength fitting', wraplength=200)
+        # # initialize label promting the user to select POIs for fitting
+        # self.promt_user_to_add_POIs_label = ttk.Label(self, text='Please add POIs to enable single-wavelength fitting', wraplength=200)
         
         # use geometry manager to arrange widgets in user input frame
         self.model_label.grid(row=0,column=0,sticky='we')
         self.model_combobox.grid(row=0,column=1,sticky='we',pady=10)
         self.fit_params_table.grid(row=2,column=0,columnspan=2,pady=5)
         self.fit_button.grid(row=3,column=0,columnspan=2,pady=5)
-        self.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
+        # self.promt_user_to_add_POIs_label.grid(row=4,column=0,columnspan=2)
         
 #####################################################################################################################
 #####################################################################################################################
