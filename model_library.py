@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.linalg
+from scipy.special import iv # modified Bessel function of the first kind
 
 #####################################################################################################################
 ############################################ INSTRUCTIONS ###########################################################
@@ -26,7 +27,7 @@ import scipy.linalg
 #    to write 'y[0] squared' use y[0]**2.
 # 9. If you have questions you can always email me at: itaischles@gmail.com   
 #####################################################################################################################
-#####################################################################################################################
+#####################################################################################################################        
 
 class Model_A_G:
     
@@ -180,12 +181,12 @@ class Model_A_B_C_D_G:
 #####################################################################################################################
 #####################################################################################################################
 
-class Model_2A_G:
+class Model_2A_G_3D:
     
     def __init__(self):
         
         self.type = 'diffeq'
-        self.name = '2A>G'
+        self.name = '2A>G(3D)'
         self.initial_populations = (1,)
         self.K = (1,)
         self.lower_bounds_K = (1e-4,)
@@ -195,6 +196,46 @@ class Model_2A_G:
     def diffeq(self,t,y,k):
         return [
                 -k[0]*y[0]**2
+               ]
+
+#####################################################################################################################
+#####################################################################################################################
+
+class Model_2A_G_2D:
+    
+    def __init__(self):
+        
+        self.type = 'diffeq'
+        self.name = '2A>G(2D)'
+        self.initial_populations = (1,)
+        self.K = (1,)
+        self.lower_bounds_K = (1e-4,)
+        self.upper_bounds_K = (1e3,)
+        self.parameter_names = ('k 2A->G',)
+    
+    def diffeq(self,t,y,k):
+        return [
+                -k[0]/(np.log(abs(t)+np.exp(1/2))) * y[0]**2
+               ]
+
+#####################################################################################################################
+#####################################################################################################################
+
+class Model_2A_G_1D:
+    
+    def __init__(self):
+        
+        self.type = 'diffeq'
+        self.name = '2A>G(1D)'
+        self.initial_populations = (1,)
+        self.K = (1,)
+        self.lower_bounds_K = (1e-4,)
+        self.upper_bounds_K = (1e3,)
+        self.parameter_names = ('k 2A->G',)
+    
+    def diffeq(self,t,y,k):
+        return [
+                -k[0]/(2*np.sqrt(abs(t)+0.25)) * y[0]**2
                ]
     
 #####################################################################################################################
@@ -242,32 +283,12 @@ class Model_2A_B_G:
 #####################################################################################################################
 #####################################################################################################################
 
-class Model_2A_G_biexciton:
+class Model_2A_G_1D_AND_A_G:
     
     def __init__(self):
         
         self.type = 'diffeq'
-        self.name = '2A>G(biexciton)'
-        self.initial_populations = (1,)
-        self.K = (1,)
-        self.lower_bounds_K = (1e-4,)
-        self.upper_bounds_K = (1e3,)
-        self.parameter_names = ('k (biexciton)',)
-    
-    def diffeq(self,t,y,k):
-        return [
-                -k[0]/(2*np.sqrt(abs(t)))*y[0]**2
-               ]
-
-#####################################################################################################################
-#####################################################################################################################
-
-class Model_2A_G_biexciton_AND_A_G:
-    
-    def __init__(self):
-        
-        self.type = 'diffeq'
-        self.name = '2A>G(biexciton)|A>G'
+        self.name = '2A>G(1D)|A>G'
         self.initial_populations = (1,)
         self.K = (1,10)
         self.lower_bounds_K = (1e-4,0.1)
@@ -276,18 +297,18 @@ class Model_2A_G_biexciton_AND_A_G:
     
     def diffeq(self,t,y,k):
         return [
-                -k[0]/(2*np.sqrt(abs(t)))*y[0]**2 -1/k[1]*y[0]
+                -k[0]/(2*np.sqrt(abs(t))) * y[0]**2 -1/k[1]*y[0]
                ]
 
 #####################################################################################################################
 #####################################################################################################################
 
-class Model_A1_G_biexciton_AND_A2_B:
+class Model_A1_G_1D_AND_A2_B:
     
     def __init__(self):
         
         self.type = 'diffeq'
-        self.name = 'A1>G(biexciton)|A2>B'
+        self.name = 'A1>G(1D)|A2>B'
         self.initial_populations = (0.5,0.5,0)
         self.K = (0.1, 15)
         self.lower_bounds_K = (0.01, 2)
@@ -296,7 +317,7 @@ class Model_A1_G_biexciton_AND_A2_B:
     
     def diffeq(self,t,y,k):
         return [
-                 -k[0]/(2*np.sqrt(abs(t)))*y[0]**2,
+                 -k[0]/(2*np.sqrt(abs(t))) * y[0]**2,
                  -1/k[1]*y[1],
                   1/k[1]*y[1]
                  ]
@@ -304,12 +325,12 @@ class Model_A1_G_biexciton_AND_A2_B:
 #####################################################################################################################
 #####################################################################################################################
 
-class Model_A_B_THEN_2B_biexciton_G:
+class Model_A_B_THEN_2B_1D_G:
     
     def __init__(self):
         
         self.type = 'diffeq'
-        self.name = 'A>B|2B>G(biexciton)'
+        self.name = 'A>B|2B>G(1D)'
         self.initial_populations = (1,0)
         self.K = (1, 1)
         self.lower_bounds_K = (0.01, 0.01)
@@ -319,18 +340,39 @@ class Model_A_B_THEN_2B_biexciton_G:
     def diffeq(self,t,y,k):
         return [
                 -1/k[0]*y[0],
-                 1/k[0]*y[0] -k[1]/(2*np.sqrt(abs(t)))*y[1]**2,
+                 1/k[0]*y[0] -k[1]/(2*np.sqrt(abs(t))) * y[1]**2,
                  ]
     
 #####################################################################################################################
 #####################################################################################################################
 
-class Model_A_B_THEN_2B_biexciton_G_AND_B_G:
+class Model_A_B_THEN_2B_3D_G:
     
     def __init__(self):
         
         self.type = 'diffeq'
-        self.name = 'A>B>G|2B>G(biexciton)'
+        self.name = 'A>B|2B>G(3D)'
+        self.initial_populations = (1,0)
+        self.K = (1, 1)
+        self.lower_bounds_K = (0.01, 0.01)
+        self.upper_bounds_K = (100, 100)
+        self.parameter_names = ('tau', 'k')
+    
+    def diffeq(self,t,y,k):
+        return [
+                -1/k[0]*y[0],
+                 1/k[0]*y[0] -k[1]*y[1]**2,
+                 ]
+
+#####################################################################################################################
+#####################################################################################################################
+
+class Model_A_B_THEN_2B_1D_G_AND_B_G:
+    
+    def __init__(self):
+        
+        self.type = 'diffeq'
+        self.name = 'A>B>G|2B>G(1D)'
         self.initial_populations = (1,0)
         self.K = (1, 10, 1)
         self.lower_bounds_K = (0.1, 1, 0.01)
@@ -340,18 +382,18 @@ class Model_A_B_THEN_2B_biexciton_G_AND_B_G:
     def diffeq(self,t,y,k):
         return [
                 -1/k[0]*y[0],
-                 1/k[0]*y[0] -1/k[1]*y[1] -k[2]/(2*np.sqrt(abs(t)))*y[1]**2,
+                 1/k[0]*y[0] -1/k[1]*y[1] -k[2]/(2*np.sqrt(abs(t))) * y[1]**2,
                  ]
     
 #####################################################################################################################
 #####################################################################################################################
 
-class Model_A_B_C_THEN_2C_biexciton_G:
+class Model_A_B_C_THEN_2C_1D_G:
     
     def __init__(self):
         
         self.type = 'diffeq'
-        self.name = 'A>B>C|2C>G(biexciton)'
+        self.name = 'A>B>C|2C>G(1D)'
         self.initial_populations = (1,0,0)
         self.K = (1, 10, 1)
         self.lower_bounds_K = (0.1, 0.1, 0.01)
@@ -362,8 +404,51 @@ class Model_A_B_C_THEN_2C_biexciton_G:
         return [
                 -1/k[0]*y[0],
                  1/k[0]*y[0] -1/k[1]*y[1],
-                 1/k[1]*y[1] -k[2]/(2*np.sqrt(abs(t)))*y[2]**2,
+                 1/k[1]*y[1] -k[2]/(2*np.sqrt(abs(t))) * y[2]**2,
                  ]
+    
+#####################################################################################################################
+#####################################################################################################################
+
+class Model_A_B_C_THEN_2C_3D_G:
+    
+    def __init__(self):
+        
+        self.type = 'diffeq'
+        self.name = 'A>B>C|2C>G(3D)'
+        self.initial_populations = (1,0,0)
+        self.K = (1,10, 1)
+        self.lower_bounds_K = (0.1, 1, 0.01)
+        self.upper_bounds_K = (10, 100, 100)
+        self.parameter_names = ('tau(A->B)', 'tau(B->C)', 'k(2C->Gnd)')
+    
+    def diffeq(self,t,y,k):
+        return [
+                -1/k[0]*y[0],
+                 1/k[0]*y[0] -1/k[1]*y[1],
+                 1/k[1]*y[1] -k[2]*y[2]**2,
+                 ]
+    
+#####################################################################################################################
+#####################################################################################################################
+
+class Model_2A_G_1D_and_B_G:
+    
+    def __init__(self):
+        
+        self.type = 'diffeq'
+        self.name = '2A>G(1D)|B>G'
+        self.initial_populations = (1,1)
+        self.K = (1,1000)
+        self.lower_bounds_K = (1e-4,10)
+        self.upper_bounds_K = (1e3,5000)
+        self.parameter_names = ('k 2A->G','tau B->G')
+    
+    def diffeq(self,t,y,k):
+        return [
+                -k[0]/(2*np.sqrt(abs(t)))*y[0]**2,
+                -1/k[1]*y[1]
+               ]
     
 #####################################################################################################################
 #####################################################################################################################
@@ -385,6 +470,7 @@ class Model_A_G_distribution:
         # generate distribution of k values
         k = np.logspace(-5,2,100)
         dist_kAG = np.exp( - (np.log10(k)-np.log10(1/params[0]))**2 / (2*params[1])**2 )
+        dist_kAG = dist_kAG/max(dist_kAG)
         
         # generate species decay curve from distribution
         inhomo_decay = np.zeros((len(time),1))
@@ -421,6 +507,7 @@ class Model_A_B_G_distribution:
         dist1 = np.exp(-0.5*((np.log10(k)-np.log10(mu[0]))**2)/np.log10(sigma[0])**2)
         # 2-D distribution over k,k (since 2nd species rises and decays with two time constants/distributions)
         dist2 = np.exp(-0.5*((np.log10(kX)-np.log10(mu[0]))**2)/np.log10(sigma[0])**2 - 0.5*((np.log10(kY)-np.log10(mu[1]))**2)/np.log10(sigma[1])**2)
+        dist2 = dist2/np.max(np.max(dist2))
         
         # generate species decay curve from distribution
         inhomo_decay = np.zeros((len(time),2))

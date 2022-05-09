@@ -7,6 +7,7 @@ import scipy.optimize
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.cm as cm # color maps
+import matplotlib.colors as colors
 
 #####################################################################################################################
 #####################################################################################################################
@@ -86,8 +87,9 @@ class ChirpCorrectGui(tk.Toplevel):
         deltaA = np.flipud(self.TA.deltaA).transpose()
         scaledTA = np.arctan(deltaA/np.max(deltaA)) # just for plotting! normalize deltaA and use arctan transformation
         self.ax.cla()
-        self.ax.pcolormesh(self.TA.wavelength[::-1], self.TA.delay, scaledTA, shading='nearest', cmap=cm.twilight)
-        self.ax.contour(self.TA.wavelength[::-1], self.TA.delay, scaledTA, colors='white', alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
+        # self.ax.pcolormesh(self.TA.wavelength[::-1], self.TA.delay, scaledTA, shading='nearest', cmap=cm.twilight)
+        # self.ax.contour(self.TA.wavelength[::-1], self.TA.delay, scaledTA, colors='white', alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
+        self.ax.contourf(self.TA.wavelength[::-1], self.TA.delay, scaledTA, cmap=cm.twilight, levels=40)
         
         # plot sampled chirp points
         for iid in self.point_list.get_children():
@@ -251,11 +253,16 @@ class SVDGui(tk.Toplevel):
         self.U, self.S, self.VH = np.linalg.svd(self.TA.deltaA)
         
         # create matplotlib figures
-        self.fig = plt.Figure(figsize=(9,6), dpi=100)
+        self.fig = plt.Figure(figsize=(9,6))
+        self.fig.set_tight_layout(True)
+        
+        # create axes
         self.ax1 = self.fig.add_subplot(2,2,1)
         self.ax2 = self.fig.add_subplot(2,2,2)
         self.ax3 = self.fig.add_subplot(2,2,3)
         self.ax4 = self.fig.add_subplot(2,2,4)
+        
+        self.residuals_colorbar = self.fig.colorbar(self.ax4.pcolormesh((0,1),(0,1),((0,0),(0,0)), shading='auto'), ax=self.ax4, label='mOD')
         
         # create figure canvas
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
@@ -284,13 +291,13 @@ class SVDGui(tk.Toplevel):
         # create button widget
         self.apply_SVD_filter_button = ttk.Button(self, text='Apply SVD filter', command=self.apply_SVD_filter)
         
-        # plot singular values
-        self.ax4.cla()
-        self.ax4.plot(np.array(range(self.N_components))+1, self.S[:self.N_components], marker='o')
-        self.ax4.set_yscale('log')
-        self.ax4.set_xlabel('Comp. #')
-        self.ax4.set_ylabel('S')
-        self.ax4.figure.canvas.draw()
+        # # plot singular values
+        # self.ax4.cla()
+        # self.ax4.plot(np.array(range(self.N_components))+1, self.S[:self.N_components], marker='o')
+        # self.ax4.set_yscale('log')
+        # self.ax4.set_xlabel('Comp. #')
+        # self.ax4.set_ylabel('S')
+        # self.ax4.figure.canvas.draw()
         
         # pack the widgets onto the frames
         self.canvas.get_tk_widget().grid(row=0,column=0)
@@ -344,7 +351,9 @@ class SVDGui(tk.Toplevel):
         SVD_deltaA = np.flipud(self.get_SVD_deltaA_components(selected_SVD_indices)).transpose()
         scaled_SVD_deltaA = -np.arctan(SVD_deltaA*1000)
         self.ax1.cla()
-        self.ax1.pcolormesh(self.TA.wavelength[::-1], self.TA.delay, scaled_SVD_deltaA, shading='nearest', cmap=cm.RdBu)
+        # self.ax1.pcolormesh(self.TA.wavelength[::-1], self.TA.delay, scaled_SVD_deltaA, shading='nearest', cmap=cm.RdBu)
+        self.ax1.contourf(self.TA.wavelength[::-1], self.TA.delay, scaled_SVD_deltaA, cmap=cm.RdBu, levels=40)
+        self.ax1.set_title(r'Filtered $\Delta$A surface')
         self.ax1.set_yscale('symlog', linthresh=1.0, linscale=0.35)
         self.ax1.set_xlabel('Wavelength')
         self.ax1.set_ylabel('Time')
@@ -355,6 +364,7 @@ class SVDGui(tk.Toplevel):
         self.ax2.plot(self.TA.delay, self.get_SVD_kinetic_components(selected_SVD_indices))
         self.ax2.plot([min(self.TA.delay),max(self.TA.delay)], [0,0], color='black', alpha=0.5)
         self.ax2.set_xscale('symlog', linthresh=1.0, linscale=0.35)
+        self.ax2.set_xlim((min(self.TA.delay),max(self.TA.delay)))
         self.ax2.set_xlabel('Time')
         self.ax2.set_ylabel(r'$\Delta$A')
         self.ax2.figure.canvas.draw()
@@ -363,10 +373,23 @@ class SVDGui(tk.Toplevel):
         self.ax3.cla()
         self.ax3.plot(self.TA.wavelength, self.get_SVD_spectrum_components(selected_SVD_indices))
         self.ax3.plot([min(self.TA.wavelength),max(self.TA.wavelength)], [0,0], color='black', alpha=0.5)
+        self.ax3.set_xlim((min(self.TA.wavelength),max(self.TA.wavelength)))
         self.ax3.set_xlabel('Wavelength')
         self.ax3.set_ylabel(r'$\Delta$A')
         self.ax3.figure.canvas.draw()
-
+        
+        # plot residual matrix
+        SVD_deltaA = self.get_SVD_filtered_deltaA()[1]
+        residual_matrix = (self.TA.deltaA - SVD_deltaA).T
+        self.ax4.cla()
+        self.residuals_plot = self.ax4.contourf(self.TA.wavelength[::-1], self.TA.delay, residual_matrix, cmap=cm.RdBu, levels=40, norm=colors.CenteredNorm())
+        self.ax4.set_title(r'$\Delta$A residuals')
+        self.residuals_colorbar.update_normal(self.residuals_plot)
+        self.ax4.set_yscale('symlog', linthresh=1.0, linscale=0.35)
+        self.ax4.set_xlabel('Wavelength')
+        self.ax4.set_ylabel('Time')
+        self.ax4.figure.canvas.draw()
+        
         self.toolbar.update()
         
     def get_SVD_filtered_deltaA(self):

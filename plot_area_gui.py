@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.cm as cm # color maps
 from matplotlib.colors import to_hex, to_rgb
+import matplotlib.colors as colors
 
 class PlotAreaFrame(tk.Frame):
     
@@ -15,13 +16,13 @@ class PlotAreaFrame(tk.Frame):
         super().__init__(master, relief=tk.FLAT) # parent class (=tk.Frame) initialization
         
         # initialize frame to contain POIs
-        self.frame_POI = tk.Frame(self)
+        self.frame_right = tk.Frame(self)
         
         # create plot toolbar frame
         self.toolbar_frame = tk.Frame(self)
         
         # create the figure
-        self.fig = plt.Figure(figsize=(8,6), dpi=100)
+        self.fig = plt.Figure(figsize=(8,6))
         self.fig.set_tight_layout(True)
         
         # create axes
@@ -29,6 +30,8 @@ class PlotAreaFrame(tk.Frame):
         self.ax2 = self.fig.add_subplot(2,2,2)
         self.ax3 = self.fig.add_subplot(2,2,3)
         self.ax4 = self.fig.add_subplot(2,2,4)
+        
+        self.residuals_colorbar = self.fig.colorbar(self.ax4.pcolormesh((0,1),(0,1),((0,0),(0,0)), shading='auto'), ax=self.ax4, label='mOD')
         
         # make Tk/Matplotlib figure canvas
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
@@ -40,26 +43,39 @@ class PlotAreaFrame(tk.Frame):
         self.toolbar.pack()
     
         # create tree widget to hold POIs
-        self.POI_table = POITable(self.frame_POI)
+        self.POI_table = POITable(self.frame_right)
         
         # create scrollbar for POI table
-        self.POI_table_scrollbar = ttk.Scrollbar(master=self.frame_POI,
+        self.POI_table_scrollbar = ttk.Scrollbar(master=self.frame_right,
                                                  orient='vertical',
                                                  command=self.POI_table.yview
                                                  )
         self.POI_table.config(yscrollcommand=self.POI_table_scrollbar.set)
         
         # create header label for POI table
-        self.POI_label = ttk.Label(self.frame_POI,text='Points of interest')
+        self.POI_label = ttk.Label(self.frame_right,text='Points of interest')
+        
+        # create header for display types
+        self.display_label = tk.Label(self.frame_right, text='Display type selection:')
+        
+        # create radio buttons for selecting what to display on the figures
+        self.display_var = tk.IntVar()
+        self.display_POIs_radiobutton = ttk.Radiobutton(self.frame_right, text='Points of interest', variable=self.display_var, value=0, state='disabled')
+        self.display_globalfitting_radiobutton = ttk.Radiobutton(self.frame_right, text='Global fitting analysis', variable=self.display_var, value=1, state='disabled')
+        self.display_mcrals_radiobutton = ttk.Radiobutton(self.frame_right, text='MCR-ALS analysis', variable=self.display_var, value=2, state='disabled')
         
         # use geometry managers to pack the widgets
         self.POI_label.grid(row=0,column=0,sticky='n')
         self.POI_table.grid(row=1,column=0,sticky='ns')
         self.POI_table_scrollbar.grid(row=1,column=1,sticky='ns')
+        self.display_label.grid(row=2,column=0,sticky='w')
+        self.display_POIs_radiobutton.grid(row=3,column=0,sticky='w')
+        self.display_globalfitting_radiobutton.grid(row=4,column=0,sticky='w')
+        self.display_mcrals_radiobutton.grid(row=5,column=0,sticky='w')
         
         # Use the grid geometry manager to pack the widgets in the main plot area frame
         self.canvas.get_tk_widget().grid(row=0,column=0)
-        self.frame_POI.grid(row=0,column=1,sticky='ns')
+        self.frame_right.grid(row=0,column=1,sticky='ns')
         self.toolbar_frame.grid(row=1,column=0,sticky='w')
         
     def refresh_fig1(self, TA, fitmodel=[]):
@@ -69,11 +85,12 @@ class PlotAreaFrame(tk.Frame):
             return
         
         self.ax1.cla()
-        
+
         deltaA = np.flipud(TA.deltaA).transpose()
-        scaledTA = np.arctan(deltaA/np.max(deltaA)) # just for plotting! normalize deltaA and use arctan transformation
-        self.ax1.pcolormesh(TA.wavelength[::-1], TA.delay, scaledTA, shading='nearest', cmap=cm.twilight)
-        self.ax1.contour(TA.wavelength[::-1], TA.delay, scaledTA, colors='white', alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
+        scaledTA = np.arctan(deltaA/np.max(np.max(np.abs(deltaA)))) # just for plotting! normalize deltaA and use arctan transformation
+        # self.ax1.pcolormesh(TA.wavelength[::-1], TA.delay, scaledTA, shading='auto', cmap=cm.twilight)
+        # self.ax1.contour(TA.wavelength[::-1], TA.delay, scaledTA, colors='black', alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
+        self.ax1.contourf(TA.wavelength[::-1], TA.delay, scaledTA, cmap=cm.twilight, levels=40)
         self.ax1.set_title(r'$\Delta$A surface')
             
         # add the points of interest
@@ -100,25 +117,78 @@ class PlotAreaFrame(tk.Frame):
         
         self.ax2.cla()
         
-        # plot the experimental and fitted kinetic traces overlaid
-        # get fitting parameters from the fitmodel object
+        # get best fit parameters from model
         fit_params = np.concatenate(([fitmodel.irf, fitmodel.tzero], fitmodel.model.K))
-
-        for i,iid in enumerate(self.POI_table.get_children()):
-            wavelength, delay, color = self.POI_table.get_poi(iid)
-            wavelength_index = np.absolute(wavelength-TA.wavelength).argmin()
-            self.ax2.plot(TA.delay, TA.deltaA[wavelength_index,:]*1000, color=color, marker='o', linestyle='none', markersize=3, alpha=0.25, markeredgecolor='none')
-            self.ax2.plot(TA.delay, fitmodel.calc_model_deltaA(fit_params)[wavelength_index,:]*1000, color=color, lw=1)
-                    
+        
+        if self.display_var.get() == 0:
+            
+            # plot the experimental and fitted kinetic traces overlaid
+            for i,iid in enumerate(self.POI_table.get_children()):
+                wavelength, delay, color = self.POI_table.get_poi(iid)
+                wavelength_index = np.absolute(wavelength-TA.wavelength).argmin()
+                self.ax2.plot(TA.delay, TA.deltaA[wavelength_index,:]*1000, color=color, marker='o', linestyle='none', markersize=3, alpha=0.25, markeredgecolor='none')
+                self.ax2.plot(TA.delay, fitmodel.calc_model_deltaA(fit_params)[wavelength_index,:]*1000, color=color, lw=1)
+            
+            # update axis labels
+            self.ax2.set_ylabel(r'$\Delta$A $\times 10^3$')
+            
+        elif self.display_var.get() == 1:
+            
+            # plot the fitted populations from the global analysis
+            model_populations = fitmodel.calc_species_decays(fit_params)
+            self.ax2.plot(TA.delay, model_populations, lw=1)
+            
+            # update axis labels
+            self.ax2.set_ylabel('Norm. populations')
+            
+        elif self.display_var.get() == 2:
+            
+            # plot the fitted populations from the MCR-ALS analysis
+            if fitmodel.mcrals.n_targets is None:
+                tk.messagebox.showerror('No MCR-ALS fit found', 'Please provide MCR-ALS fit first using "Fitting > Perform MCR-ALS analysis..."')
+                self.display_var.set(0) # go back to POI view-type
+                self.refresh_fig2(TA, fitmodel)
+                return
+            
+            mcrals_populations = fitmodel.mcrals.C_opt_
+            model_populations = fitmodel.calc_species_decays(fit_params)
+            
+            # find amplitudes of calculated model populations that "best" fit the MCR-ALS populations:
+            # populations[delays, #species] = model_populations[delays, #species] * amplitudes[#species, #species]
+            conversion_amplitudes = np.matmul(np.linalg.pinv(model_populations), mcrals_populations)
+            model_populations = np.matmul(model_populations, conversion_amplitudes)
+            
+            # normalize MCR-ALS and model populations
+            for i in range(mcrals_populations.shape[1]):
+                mcrals_populations[:,i] = mcrals_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
+                model_populations[:,i] = model_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
+            
+            for i in range(model_populations.shape[1]):
+                color = cm.tab10(i)
+                self.ax2.scatter(TA.delay, mcrals_populations[:,i], s=1, color=color, alpha=0.5)
+                self.ax2.plot(TA.delay, model_populations[:,i], lw=1, color=color)
+            
+            self.ax2.set_xlim((min(TA.delay), max(TA.delay)))
+            
+            # update axis labels
+            self.ax2.set_ylabel('Norm. populations')
+            
+        else:
+            
+            return
+            
+            model_populations = fitmodel.mcrals.C_opt_
+            self.ax2.plot(TA.delay, model_populations, lw=1)
+            
+            # update axis labels
+            self.ax2.set_ylabel('Norm. populations')
+            
+        self.ax2.set_xlabel('Delay')
         self.ax2.set_xscale('symlog', linthresh=1.0, linscale=0.35)
         self.ax2.set_xlim((min(TA.delay),max(TA.delay)))
                 
         # add line at deltaA=0
         self.ax2.plot([min(TA.delay), max(TA.delay)],[0,0], linewidth=0.3, color=(0.2,0.2,0.2))
-        
-        # update axis labels
-        self.ax2.set_xlabel('Delay')
-        self.ax2.set_ylabel(r'$\Delta$A $\times 10^3$')
         
         # show plot on GUI
         self.ax2.figure.canvas.draw()
@@ -130,12 +200,43 @@ class PlotAreaFrame(tk.Frame):
         
         self.ax3.cla()
         
-        # plot the spectra of the selected wavelengths (in POIs)
-        for iid in self.POI_table.get_children():
-            wavelength, delay, color = self.POI_table.get_poi(iid)
-            delay_index = np.argmin(abs(TA.delay-delay))
-            self.ax3.plot(TA.wavelength, TA.deltaA[:,delay_index]*1000, lw=1, color=color, alpha=0.75)
-            self.ax3.set_ylabel(r'$\Delta$A $\times 10^3$')
+        # get best fit parameters from model
+        fit_params = np.concatenate(([fitmodel.irf, fitmodel.tzero], fitmodel.model.K))
+        
+        if self.display_var.get() == 0:
+            
+            # plot the spectra of the selected wavelengths (in POIs)
+            for iid in self.POI_table.get_children():
+                wavelength, delay, color = self.POI_table.get_poi(iid)
+                delay_index = np.argmin(abs(TA.delay-delay))
+                self.ax3.plot(TA.wavelength, TA.deltaA[:,delay_index]*1000, lw=1, color=color, alpha=0.75)
+                self.ax3.set_ylabel(r'$\Delta$A $\times 10^3$')
+        
+        elif self.display_var.get() == 1:
+            
+            # plot the fitted species spectra from the global analysis
+            species_spectra = fitmodel.normalize_species_spectra(fitmodel.calc_model_species_spectra(fit_params))
+            self.ax3.plot(TA.wavelength, species_spectra, lw=1)
+            self.ax3.set_ylabel('Norm. species spectra')
+            
+        elif self.display_var.get() == 2:
+            
+            # plot the fitted species spectra from the MCR-ALS analysis
+            if fitmodel.mcrals.n_targets is None:
+                tk.messagebox.showerror('No MCR-ALS fit found', 'Please provide MCR-ALS fit first using "Fitting > Perform MCR-ALS analysis..."')
+                self.display_var.set(0)
+                self.refresh_fig3(TA, fitmodel)
+                return
+            
+            mcrals_spectra = fitmodel.normalize_species_spectra(fitmodel.mcrals.ST_opt_.T)
+            self.ax3.plot(TA.wavelength, mcrals_spectra, lw=1)
+            
+            # update axis labels
+            self.ax3.set_ylabel('Norm. species spectra')
+            
+        else:
+            
+            return
         
         # update axis labels
         self.ax3.set_xlabel('Wavelength')
@@ -157,13 +258,15 @@ class PlotAreaFrame(tk.Frame):
         
         self.ax4.cla()
         
-        if fitmodel != []: # plot the experimental and fitted kinetic traces overlaid
+        if fitmodel != []:
             
             # get fitting parameters from the fitmodel object
             fit_params = np.concatenate(([fitmodel.irf, fitmodel.tzero], fitmodel.model.K))
             deltaA_residuals = fitmodel.calc_model_deltaA_residual_matrix(fit_params).transpose()
-            scaled_deltaA_residuals = -np.arctan(deltaA_residuals*1000)
-            self.ax4.pcolormesh(TA.wavelength, TA.delay, scaled_deltaA_residuals, shading='nearest', cmap=cm.RdBu)
+            # self.residuals_plot = self.ax4.pcolormesh(TA.wavelength, TA.delay, deltaA_residuals*1000, shading='auto', cmap=cm.RdBu_r, norm=colors.CenteredNorm())
+            self.residuals_plot = self.ax4.contourf(TA.wavelength, TA.delay, deltaA_residuals*1000, cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=40)
+            self.residuals_colorbar.update_normal(self.residuals_plot)
+            
             self.ax4.set_title(r'$\Delta$A residuals')
             
             # add the points of interest
@@ -237,9 +340,9 @@ class PlotAreaFrame(tk.Frame):
         scaledTA_compare = np.arctan(deltaA_compare/np.max(deltaA_compare)) # just for plotting! normalize deltaA and use arctan transformation
         
         # ax_surface_compare.pcolormesh(TA.wavelength[::-1], TA.delay, scaledTA, shading='nearest', cmap=cm.twilight)
-        ax_surface_compare.contour(TA.wavelength[::-1], TA.delay, scaledTA, alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
+        ax_surface_compare.contour(TA.wavelength[::-1], TA.delay, scaledTA, alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10), colors='red')
         # ax_surface_compare.pcolormesh(TA_compare.wavelength[::-1], TA_compare.delay, scaledTA_compare, shading='nearest', cmap=cm.twilight)
-        ax_surface_compare.contour(TA_compare.wavelength[::-1], TA_compare.delay, scaledTA_compare, alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
+        ax_surface_compare.contour(TA_compare.wavelength[::-1], TA_compare.delay, scaledTA_compare, alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10), colors='blue')
         
         ax_surface_compare.set_xlim((min(TA.wavelength),max(TA.wavelength)))
         
@@ -250,7 +353,6 @@ class PlotAreaFrame(tk.Frame):
         ax_surface_compare.set_ylim(ylims)
         ax_surface_compare.set_xlabel('Wavelength')
         ax_surface_compare.set_ylabel('Delay')
-        
 
 #####################################################################################################################
 #####################################################################################################################

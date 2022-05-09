@@ -54,7 +54,7 @@ class TransientAbsorption:
             self.wavelength = self.wavelength[wavelength_mask]
             self.delay = self.delay[delay_mask]
         elif method=='delete':
-            self.deltaA[wavelength_inds[0]:wavelength_inds[-1]+1, delay_inds[0]:delay_inds[-1]+1] = 0.0
+            self.deltaA[wavelength_inds[0]:wavelength_inds[-1]+1, delay_inds[0]:delay_inds[-1]+1]
             
     def reset_TA_data(self):
         
@@ -84,3 +84,9 @@ class TransientAbsorption:
     def subtract_pret0_background(self):
         
         self.deltaA = self.deltaA - np.tile(self.pret0_background, (self.delay.size,1)).transpose()
+        
+    def subtract_surface(self, TA_to_subtract):
+        
+        TA_interp2d_func = scipy.interpolate.interp2d(TA_to_subtract.delay, TA_to_subtract.wavelength, TA_to_subtract.deltaA)
+        TA_to_subtract.deltaA = np.flipud(TA_interp2d_func(self.delay, self.wavelength))
+        self.deltaA = self.deltaA - TA_to_subtract.deltaA
