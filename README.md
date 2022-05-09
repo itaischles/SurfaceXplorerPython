@@ -1,6 +1,19 @@
 # SurfaceXplorerPython
 Python GUI for transient absorption data correction and fitting
 
+## updated 05/22/2022
+
+Added/changed features:
+1. Model filtering based on number of species user selected.
+2. Multivariate Curve Resolution - Alternating Least Squares (MCR-ALS) fitting of data (using pyMCR package from NIST).
+3. User choice of fitting population curves extracted from MCR-ALS analysis to the selected model or global analsysis fitting (fit entire deltaA matrix to model).
+4. Different view types: 
+  a. 'Points of interest' (kinetic curves and spectra at selected points on surface)
+  b. 'Global fitting analysis' (Normalized populations and species' spectra extracted from model)
+  c. 'MCR-ALS analysis' (Populations and species' spectra extracted from MCR-ALS analsysis with overlaid model populations)
+5. Color bar for deltaA residual matrix
+6. SVD filter now shows residual matrix instead of singular values.
+
 ## updated 03/04/2022
 
 Now fits are done globally using the entire deltaA matrix instead of single-wavelength fitting as before.
