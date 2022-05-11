@@ -165,18 +165,22 @@ class FitModel:
         # calculate the species decay traces (as column vectors).
         # The solve_ivp method 'LSODA' appears to be much faster (~0.01 sec) than the default 'RK45' (~0.2 sec)
         if self.model.type == 'diffeq':
+            
             species_decays = solve_ivp(lambda t,y: self.model.diffeq(t,y,K), t_span, self.model.initial_populations, t_eval=self.TA.delay[t0ind:], method='LSODA').y.transpose()
+            
             # since solver did not solve for t<0, add zeros before the solution(s)
             species_decays = np.concatenate((np.zeros((self.TA.delay[:t0ind].shape[0],species_decays.shape[1])), species_decays), axis=0)
+            
         elif self.model.type == 'other':
+            
             species_decays = self.model.get_species_decay(self.TA.delay, K)    
         
-        # colvolve with IRF
+        # convolve with IRF
         species_decays = self._convolve_with_IRF(species_decays, irf, tzero)
         
-        # normalize species
-        for i in range(len(species_decays[0,:])):
-            species_decays[:,i] = species_decays[:,i]/np.max(np.abs(species_decays[:,i]))
+        # # normalize species
+        # for i in range(len(species_decays[0,:])):
+        #     species_decays[:,i] = species_decays[:,i]/np.max(np.abs(species_decays[:,i]))
         
         return species_decays
     
