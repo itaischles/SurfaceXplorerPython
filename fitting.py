@@ -273,8 +273,10 @@ class FitModel:
         
     def change_model(self, new_model):
         
-        # after changing a model, the fitmodel object is almost completely "reset".
-        # some attributes remain after changing the model: TA, irf, tzero, mcrals
+        # after changing a model, the fitmodel object is almost completely "reset"
+        # with its __init__ method.
+        # Some model-unrelated attributes remain after changing the model:
+        # TA, irf, tzero, mcrals
         
         mcrals = self.mcrals
         self.__init__(self.TA, new_model, self.irf, self.tzero)
