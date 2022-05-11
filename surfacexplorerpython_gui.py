@@ -491,6 +491,19 @@ class SurfaceXplorerPythonGui(tk.Tk):
         model_spectra = self.fitmodel.calc_model_species_spectra(fit_params)
         model_populations = self.fitmodel.calc_species_decays(fit_params)
         
+        if self.fitmodel.mcrals.n_targets is not None:
+            
+            mcrals_populations = self.fitmodel.mcrals.C_opt_
+            mcrals_species_spectra = self.fitmodel.mcrals.ST_opt_.T
+            
+            # normalize MCR-ALS and model populations
+            for i in range(mcrals_populations.shape[1]):
+                mcrals_populations[:,i] = mcrals_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
+            
+            # add wavelength/delay first columns
+            mcrals_populations = np.concatenate((first_col_kinetics[1:], self.fitmodel.mcrals.C_opt_), axis=1)
+            mcrals_species_spectra = np.concatenate((first_col_spectra[1:], self.fitmodel.mcrals.ST_opt_.T), axis=1)
+        
         # add the labels for each kinetic trace (label=wavelength)
         if export_POIs==True:
             model_kinetics = np.concatenate((np.array(self.TA.wavelength[wavelength_indices],ndmin=2),model_kinetics), axis=0)
@@ -500,10 +513,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
         if export_POIs==True:
             model_kinetics = np.concatenate((first_col_kinetics, model_kinetics), axis=1)
         model_populations = np.concatenate((first_col_kinetics[1:], model_populations), axis=1)
-        
-        if self.fitmodel.mcrals.n_targets is not None:
-            mcrals_populations = np.concatenate((first_col_kinetics[1:], self.fitmodel.mcrals.C_opt_), axis=1)
-            mcrals_species_spectra = np.concatenate((first_col_spectra[1:], self.fitmodel.mcrals.ST_opt_.T), axis=1)
         
         ################
         # Prepare POIs #

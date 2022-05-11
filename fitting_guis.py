@@ -6,12 +6,6 @@ import matplotlib.cm as cm # color maps
 import numpy as np
 import model_library
 
-# adding pyMCR folder to the system path
-import sys
-sys.path.insert(0, 'pyMCR')
-from pymcr.mcr import McrAR
-from pymcr.constraints import ConstraintNonneg, ConstraintNorm
-
 #####################################################################################################################
 #####################################################################################################################
 

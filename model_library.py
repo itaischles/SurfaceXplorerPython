@@ -6,26 +6,38 @@ from scipy.special import iv # modified Bessel function of the first kind
 ############################################ INSTRUCTIONS ###########################################################
 #####################################################################################################################
 # Instructions on how to create a new model:
+#
 # 1. You can start by copying an existing model class. Mind the indentation of the code! It is important in Python!
 # 2. Change the name of the class (whatever is written after the keyword 'class' and followed by ':') so that it is unique.
-# 3. Under the '__init__' method change name to whatever string you would like. This will be the official name of your model.
-# 4. In the self.initial_population, make sure you put between parenthesis the correct number of initial species with relative
+# 3. Under the '__init__' method change the model type to 'diffeq' for differential equation type (d[A]/dt=...) or 'other'
+#    if it directly outputs the populations ([A]=...).
+# 4. Under the '__init__' method change name to whatever string you would like. This will be the official name of your model.
+# 5. In the self.initial_population, make sure you put between parenthesis the correct number of initial species with relative
 #    populations. e.g.: (1,0) means species 1 starts at 100% which is then replaced by species 2 which starts at 0%.
 #    Important: for vectors containing one element, use a comma: ',' after the last element. This tells Python it is a
-#    vector and not a scalar.
-# 5. self.K is a list/tuple of model specific parameters (decay rates, time constants,...) excluding the IRF (which is not
+#    vector and not a scalar (see e.g. A->Gnd model).
+# 6. self.K is a list of model specific parameters (decay rates, time constants,...) excluding the IRF (which is not
 #    included in the model itself)
-# 6. Add lower bounds and upper bounds on the fitting parameters in the next two vectors. Make sure there is the same number
+# 7. Add lower bounds and upper bounds on the fitting parameters in the next two vectors. Make sure there is the same number
 #    of elements as in the self.K vector.
-# 7. Add parameters names as a list/tuple of strings (in quotes)
-# 8. Only the body of the function 'diffeq' should be changed in the following way:
-#    After the keyword 'return' there should be an opening square bracket and in the end closing square bracket.
+# 8. Add meaningful parameter names as a list/tuple of strings (in quotes, ', or double-quotes, ")
+# 
+# FOR 'diffeq' type models:
+#    Only the body of the function 'diffeq' should be changed in the following way:
+#    After the keyword 'return' there should be an opening square bracket, and in the end a closing square bracket.
 #    Between those, add the right-hand-side of the differential equations separated by commas for each equation.
 #    k is a vector of the fitting parameter values to be inserted so that k[0] is the first fitting parameter,
 #    k[1] is the second, and so on... y is the species population vector so that y[0] is the first species,
 #    y[1] is the second species, and so on... To add higher order powers in Python you use double asterisk, e.g.
 #    to write 'y[0] squared' use y[0]**2.
-# 9. If you have questions you can always email me at: itaischles@gmail.com   
+# 
+# FOR 'other' type models:
+#    Create a method named 'get_species_decay' with input parameters '(self,time,params)' (see e.g. Model_A_G_distribution).
+#    The output of this method is a [N,M] matrix where N has length of the delay vector, and M has length of the number of
+#    species. For example, for a model with 2 species and an output matrix named 'p': p[:,0] is the first population decay
+#    curve, and p[:,1] is the second population decay curve.
+# 
+# If you have questions you can always email me at: itaischles@gmail.com   
 #####################################################################################################################
 #####################################################################################################################        
 

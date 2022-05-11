@@ -14,9 +14,11 @@ from pymcr.constraints import ConstraintNonneg
 #####################################################################################################################
 #
 # Walk-through:
-# 1. fit_model() uses least_squares(P, _calc_residuals) where P is a fitting parameters vector, and _calc_residuals() is the cost function
-# 2. _calc_residuals(P) calls calc_model_deltaA(P) to calculate the model deltaA matrix from the normalized species decays
-# 3. calc_model_deltaA(P) calls calc_species_decays(P) to construct the species decays using the model by solving the differential equations and convolving with IRF in _convolve_with_IRF()
+# 1. fit_model() uses least_squares(P, _calc_residuals) where P is a fitting parameter vector, and _calc_residuals() is the cost function.
+# 2. _calc_residuals(P) calls either calc_model_deltaA(P) to calculate the model deltaA matrix from the normalized species decays in 'global fitting'
+#    or calculates the residuals in the fit of the normalized model species decays to the normalized MCR-ALS populations.
+# 3. calc_model_deltaA(P) calls calc_species_decays(P) to construct the species decays using the model by solving the differential equations and
+#    convolving with IRF in _convolve_with_IRF()
 #
 #####################################################################################################################
 #####################################################################################################################
@@ -41,17 +43,17 @@ class FitModel:
         # initialize mcrar object for multivariate curve resolution fitting
         self.mcrals = McrAR(c_regr='OLS',
                       st_regr='OLS',
-                      c_constraints=[ConstraintNonneg()],
+                      c_constraints=[ConstraintNonneg()], # constraint on the populations to be non-negative
                       st_constraints=[],
                       max_iter=100)
         
     def _convolve_with_IRF(self, kinetic_traces, irf, tzero):
         
-        ####################################################################
+        ######################################################################
         # INPUT: kinetic traces are arranged in a (D,W)
-        # matrix where W is the number of wavelengths selected and D is the
+        # matrix where W is the number of kinetic traces selected and D is the
         # length of the delay vector
-        ####################################################################
+        ######################################################################
         
         # find time-zero index in delay vector
         t0_index = np.argmin(abs(self.TA.delay-tzero))
@@ -60,7 +62,7 @@ class FitModel:
         kinetic_traces[0:t0_index, :] = 0.0
         
         # create linearly sampled time axis for convolution with Gaussian
-        dt = (self.TA.delay[1]-self.TA.delay[0])/3
+        dt = (self.TA.delay[1]-self.TA.delay[0])/3 # for interpolation, use 1/3 of a step in the delay vector
         delay_positive = np.arange(tzero, self.TA.delay[-1]+dt, dt)
         delay_negative = np.arange(-self.TA.delay[-1], tzero, dt)
         delay = np.concatenate((delay_negative, delay_positive))
@@ -68,12 +70,12 @@ class FitModel:
         # create Gaussian IRF
         b = 4*np.log(2.0)/(irf**2)
         gaussian_irf = np.exp(-b * delay**2)
-        gaussian_irf = gaussian_irf / np.sum(gaussian_irf)
+        gaussian_irf = gaussian_irf / np.sum(gaussian_irf) # normalize the Gaussian
         
         # create array that will hold the convolved kinetic traces
         kinetic_traces_convolved = np.zeros((self.TA.delay.size, kinetic_traces.shape[1]))
         
-        # loop over selected wavelengths
+        # loop over selected number of kinetic traces
         for i in range(kinetic_traces.shape[1]):
             
             # interpolate each kinetic trace to the linearly sampled delay
@@ -104,15 +106,9 @@ class FitModel:
             mcrals_populations = self.mcrals.C_opt_
             model_populations = self.calc_species_decays(P)
             
-            # # find amplitudes of calculated model populations that "best" fit the MCR-ALS populations:
-            # # populations[delays, #species] = model_populations[delays, #species] * amplitudes[#species, #species]
-            # conversion_amplitudes = np.matmul(np.linalg.pinv(model_populations), mcrals_populations)
-            # model_populations = np.matmul(model_populations, conversion_amplitudes)
-            
             # normalize MCR-ALS and model populations
             for i in range(mcrals_populations.shape[1]):
                 mcrals_populations[:,i] = mcrals_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
-                # model_populations[:,i] = model_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
 
             residuals_as_matrix = mcrals_populations - model_populations
         
@@ -147,7 +143,7 @@ class FitModel:
         # calculate the model species (population) decays
         species_decays = self.calc_species_decays(P)
         
-        # calculate coefficient matrix (C) of converting from deltaA (D) to species (S): D=C*S -> C=D*inv(S)
+        # calculate coefficient matrix (C) of converting from deltaA (A) to species (S): A=C*S -> C=A*inv(S)
         pseudo_inv_species_decays = np.linalg.pinv(species_decays)
         coeffs = np.matmul(pseudo_inv_species_decays, self.TA.deltaA.T)
         
@@ -166,13 +162,12 @@ class FitModel:
         # get time span vector: (first_delay, last_delay) to use when solving the model diff. eq.
         t_span = (self.TA.delay[0], self.TA.delay[-1])
         
-        # calculate the species decay traces (as column vectors) and convolve with IRF.
+        # calculate the species decay traces (as column vectors).
         # The solve_ivp method 'LSODA' appears to be much faster (~0.01 sec) than the default 'RK45' (~0.2 sec)
         if self.model.type == 'diffeq':
             species_decays = solve_ivp(lambda t,y: self.model.diffeq(t,y,K), t_span, self.model.initial_populations, t_eval=self.TA.delay, method='LSODA').y.transpose()
         elif self.model.type == 'other':
             species_decays = self.model.get_species_decay(self.TA.delay, K)
-            
             
         # colvolve with IRF
         species_decays = self._convolve_with_IRF(species_decays, irf, tzero)

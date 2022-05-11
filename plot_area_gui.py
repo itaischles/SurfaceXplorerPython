@@ -153,15 +153,9 @@ class PlotAreaFrame(tk.Frame):
             mcrals_populations = fitmodel.mcrals.C_opt_
             model_populations = fitmodel.calc_species_decays(fit_params)
             
-            # # find amplitudes of calculated model populations that "best" fit the MCR-ALS populations:
-            # # populations[delays, #species] = model_populations[delays, #species] * amplitudes[#species, #species]
-            # conversion_amplitudes = np.matmul(np.linalg.pinv(model_populations), mcrals_populations)
-            # model_populations = np.matmul(model_populations, conversion_amplitudes)
-            
             # normalize MCR-ALS and model populations
             for i in range(mcrals_populations.shape[1]):
                 mcrals_populations[:,i] = mcrals_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
-                # model_populations[:,i] = model_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
             
             for i in range(model_populations.shape[1]):
                 color = cm.tab10(i)
