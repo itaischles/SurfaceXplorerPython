@@ -812,8 +812,11 @@ class SurfaceXplorerPythonGui(tk.Tk):
             
             return
         
+        # refresh plots
+        self.refresh_plots()
+        
         # update log
-        self.log_frame.update_log('Data was fited to MCR-ALS model.')
+        self.log_frame.update_log('Data was fitted to MCR-ALS model.')
         
     def change_fittype(self):
         

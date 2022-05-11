@@ -159,16 +159,18 @@ class FitModel:
         tzero = P[1]
         K = P[2:]
         
-        # get time span vector: (first_delay, last_delay) to use when solving the model diff. eq.
-        t_span = (self.TA.delay[0], self.TA.delay[-1])
-        
+        t0ind = np.argmin(np.abs(self.TA.delay-tzero))
+        t_span = (self.TA.delay[t0ind], self.TA.delay[-1])
+
         # calculate the species decay traces (as column vectors).
         # The solve_ivp method 'LSODA' appears to be much faster (~0.01 sec) than the default 'RK45' (~0.2 sec)
         if self.model.type == 'diffeq':
-            species_decays = solve_ivp(lambda t,y: self.model.diffeq(t,y,K), t_span, self.model.initial_populations, t_eval=self.TA.delay, method='LSODA').y.transpose()
+            species_decays = solve_ivp(lambda t,y: self.model.diffeq(t,y,K), t_span, self.model.initial_populations, t_eval=self.TA.delay[t0ind:], method='LSODA').y.transpose()
+            # since solver did not solve for t<0, add zeros before the solution(s)
+            species_decays = np.concatenate((np.zeros((self.TA.delay[:t0ind].shape[0],species_decays.shape[1])), species_decays), axis=0)
         elif self.model.type == 'other':
-            species_decays = self.model.get_species_decay(self.TA.delay, K)
-            
+            species_decays = self.model.get_species_decay(self.TA.delay, K)    
+        
         # colvolve with IRF
         species_decays = self._convolve_with_IRF(species_decays, irf, tzero)
         

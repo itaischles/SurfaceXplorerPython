@@ -78,7 +78,7 @@ class ChirpCorrectGui(tk.Toplevel):
         # make this window modal
         self.wait_window()
         
-    def plot_figure(self):
+    def plot_figure(self, xlims=None, ylims=None):
         
         if self.TA == []:
             return
@@ -100,6 +100,11 @@ class ChirpCorrectGui(tk.Toplevel):
         # plot chirp
         self.ax.plot(self.TA.wavelength, self.chirp, color='blue')
         
+        if xlims is not None:
+            self.ax.set_xlim(xlims)
+        if ylims is not None:
+            self.ax.set_ylim(ylims)
+            
         self.ax.set_yscale('symlog', linthresh=10.0, linscale=2.0)
         self.ax.set_xlabel('Wavelength')
         self.ax.set_ylabel('Time')
@@ -113,7 +118,7 @@ class ChirpCorrectGui(tk.Toplevel):
             wavelength, delay = event.xdata, event.ydata
             self.point_list.insert('', tk.END, values=("{:.2f}".format(wavelength), "{:.2f}".format(delay)))
             self.calculate_chirp()
-            self.plot_figure()
+            self.plot_figure(self.ax.get_xlim(), self.ax.get_ylim())
             
     def calculate_chirp(self):
         
