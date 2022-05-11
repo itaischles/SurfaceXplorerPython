@@ -8,7 +8,7 @@ from scipy.signal import convolve
 from scipy.interpolate import interp1d
 from scipy.optimize import least_squares
 from pymcr.mcr import McrAR
-from pymcr.constraints import ConstraintNonneg, ConstraintNorm
+from pymcr.constraints import ConstraintNonneg
 
 #####################################################################################################################
 #####################################################################################################################
@@ -101,15 +101,20 @@ class FitModel:
             
         elif self.fittype == 'MCR-ALS':
             
-            populations = self.mcrals.C_opt_
+            mcrals_populations = self.mcrals.C_opt_
             model_populations = self.calc_species_decays(P)
             
-            # find amplitudes of calculated model populations that "best" fit the MCR-ALS populations:
-            # populations[delays, #species] = model_populations[delays, #species] * amplitudes[#species, #species]
-            conversion_amplitudes = np.matmul(np.linalg.pinv(model_populations), populations)
-            model_populations = np.matmul(model_populations, conversion_amplitudes)
+            # # find amplitudes of calculated model populations that "best" fit the MCR-ALS populations:
+            # # populations[delays, #species] = model_populations[delays, #species] * amplitudes[#species, #species]
+            # conversion_amplitudes = np.matmul(np.linalg.pinv(model_populations), mcrals_populations)
+            # model_populations = np.matmul(model_populations, conversion_amplitudes)
+            
+            # normalize MCR-ALS and model populations
+            for i in range(mcrals_populations.shape[1]):
+                mcrals_populations[:,i] = mcrals_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
+                # model_populations[:,i] = model_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
 
-            residuals_as_matrix = populations - model_populations
+            residuals_as_matrix = mcrals_populations - model_populations
         
         # flatten residuals to a 1d vector
         residuals_as_vector = np.reshape(residuals_as_matrix, newshape=residuals_as_matrix.size)
