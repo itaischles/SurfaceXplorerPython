@@ -105,10 +105,6 @@ class FitModel:
             
             mcrals_populations = self.mcrals.C_opt_
             model_populations = self.calc_species_decays(P)
-            
-            # normalize MCR-ALS and model populations
-            for i in range(mcrals_populations.shape[1]):
-                mcrals_populations[:,i] = mcrals_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
 
             residuals_as_matrix = mcrals_populations - model_populations
         
@@ -178,9 +174,9 @@ class FitModel:
         # convolve with IRF
         species_decays = self._convolve_with_IRF(species_decays, irf, tzero)
         
-        # # normalize species
-        # for i in range(len(species_decays[0,:])):
-        #     species_decays[:,i] = species_decays[:,i]/np.max(np.abs(species_decays[:,i]))
+        # normalize species
+        for i in range(len(species_decays[0,:])):
+            species_decays[:,i] = species_decays[:,i]/np.max(np.abs(species_decays[:,i]))
         
         return species_decays
     

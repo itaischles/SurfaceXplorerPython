@@ -247,18 +247,18 @@ class Model_2A_G_1D:
     
     def diffeq(self,t,y,k):
         return [
-                -k[0]/(2*np.sqrt(abs(t))) * y[0]**2
+                -k[0]/(2*np.sqrt(abs(t)+0.25)) * y[0]**2
                ]
     
 #####################################################################################################################
 #####################################################################################################################
 
-class Model_2A_B:
+class Model_2A_B_3D:
     
     def __init__(self):
         
         self.type = 'diffeq'
-        self.name = '2A>B'
+        self.name = '2A>B(3D)'
         self.initial_populations = (1,0)
         self.K = (1,)
         self.lower_bounds_K = (1e-4,)
@@ -269,6 +269,69 @@ class Model_2A_B:
         return [
                 -k[0]*y[0]**2,
                  k[0]*y[0]**2
+               ]
+    
+#####################################################################################################################
+#####################################################################################################################
+
+class Model_2A_B_1D:
+    
+    def __init__(self):
+        
+        self.type = 'diffeq'
+        self.name = '2A>B(1D)'
+        self.initial_populations = (1,0)
+        self.K = (1,)
+        self.lower_bounds_K = (1e-4,)
+        self.upper_bounds_K = (1e3,)
+        self.parameter_names = ('k 2A->B',)
+    
+    def diffeq(self,t,y,k):
+        return [
+                -k[0]/(2*np.sqrt(abs(t)+0.25))*y[0]**2,
+                 k[0]/(2*np.sqrt(abs(t)+0.25))*y[0]**2
+               ]
+    
+#####################################################################################################################
+#####################################################################################################################
+
+class Model_2A_G_3D_and_invisible_B:
+    
+    def __init__(self):
+        
+        self.type = 'diffeq'
+        self.name = '2A>G(3D)|?>B'
+        self.initial_populations = (1,0)
+        self.K = (1,100)
+        self.lower_bounds_K = (1e-4,1e-1)
+        self.upper_bounds_K = (1e3,1e4)
+        self.parameter_names = ('k 2A->B','tau ?>B')
+    
+    def diffeq(self,t,y,k):
+        return [
+                -k[0]*y[0]**2,
+                 1/k[1]*(1-y[1])
+               ]
+    
+#####################################################################################################################
+#####################################################################################################################
+
+class Model_2A_G_1D_and_invisible_B:
+    
+    def __init__(self):
+        
+        self.type = 'diffeq'
+        self.name = '2A>G(1D)|?>B'
+        self.initial_populations = (1,0)
+        self.K = (1,100)
+        self.lower_bounds_K = (1e-4,1e-1)
+        self.upper_bounds_K = (1e3,1e4)
+        self.parameter_names = ('k 2A->B','tau ?>B')
+    
+    def diffeq(self,t,y,k):
+        return [
+                -k[0]/(2*np.sqrt(abs(t)+0.25))*y[0]**2,
+                 1/k[1]*(1-y[1])
                ]
     
 #####################################################################################################################
@@ -309,7 +372,7 @@ class Model_2A_G_1D_AND_A_G:
     
     def diffeq(self,t,y,k):
         return [
-                -k[0]/(2*np.sqrt(abs(t))) * y[0]**2 -1/k[1]*y[0]
+                -k[0]/(2*np.sqrt(abs(t)+0.25)) * y[0]**2 -1/k[1]*y[0]
                ]
 
 #####################################################################################################################
@@ -329,9 +392,9 @@ class Model_A1_G_1D_AND_A2_B:
     
     def diffeq(self,t,y,k):
         return [
-                 -k[0]/(2*np.sqrt(abs(t))) * y[0]**2,
+                 -k[0]/(2*np.sqrt(abs(t)+0.25)) * y[0]**2,
                  -1/k[1]*y[1],
-                  1/k[1]*y[1]
+                  2/k[1]*y[1]
                  ]
 
 #####################################################################################################################
@@ -352,7 +415,7 @@ class Model_A_B_THEN_2B_1D_G:
     def diffeq(self,t,y,k):
         return [
                 -1/k[0]*y[0],
-                 1/k[0]*y[0] -k[1]/(2*np.sqrt(abs(t))) * y[1]**2,
+                 1/k[0]*y[0] -k[1]/(2*np.sqrt(abs(t)+0.25)) * y[1]**2,
                  ]
     
 #####################################################################################################################
@@ -394,7 +457,7 @@ class Model_A_B_THEN_2B_1D_G_AND_B_G:
     def diffeq(self,t,y,k):
         return [
                 -1/k[0]*y[0],
-                 1/k[0]*y[0] -1/k[1]*y[1] -k[2]/(2*np.sqrt(abs(t))) * y[1]**2,
+                 1/k[0]*y[0] -1/k[1]*y[1] -k[2]/(2*np.sqrt(abs(t)+0.25)) * y[1]**2,
                  ]
     
 #####################################################################################################################
@@ -416,7 +479,7 @@ class Model_A_B_C_THEN_2C_1D_G:
         return [
                 -1/k[0]*y[0],
                  1/k[0]*y[0] -1/k[1]*y[1],
-                 1/k[1]*y[1] -k[2]/(2*np.sqrt(abs(t))) * y[2]**2,
+                 1/k[1]*y[1] -k[2]/(2*np.sqrt(abs(t)+0.25)) * y[2]**2,
                  ]
     
 #####################################################################################################################
@@ -458,7 +521,7 @@ class Model_2A_G_1D_and_B_G:
     
     def diffeq(self,t,y,k):
         return [
-                -k[0]/(2*np.sqrt(abs(t)))*y[0]**2,
+                -k[0]/(2*np.sqrt(abs(t)+0.25))*y[0]**2,
                 -1/k[1]*y[1]
                ]
     
@@ -533,3 +596,54 @@ class Model_A_B_G_distribution:
 
 #####################################################################################################################
 #####################################################################################################################
+
+class Model_WSe2_bare:
+    
+    def __init__(self):
+        
+        self.type = 'other'
+        self.name = 'WSe2_bare'
+        self.initial_populations = (1,0)
+        self.K = (10,10,1000)
+        self.lower_bounds_K = (0.1,0.1,0.1)
+        self.upper_bounds_K = (10000,10000,10000)
+        self.parameter_names = ('tau A->Gnd','tau ?->B','tau B->Gnd')
+    
+    def get_species_decay(self,time,params):
+        
+        decays = np.zeros((len(time),2))
+        decays[time>0,0] = np.exp(-time[time>0]/params[0])
+        decays[time>0,1] = (1-np.exp(-time[time>0]/params[1])) * np.exp(-time[time>0]/params[2])
+        return decays
+
+#####################################################################################################################
+#####################################################################################################################
+
+class Model_WSe2_CoPc:
+    
+    def __init__(self):
+        
+        self.type = 'other'
+        self.name = 'WSe2_CoPc'
+        self.initial_populations = (1,0)
+        self.K = (1,0.5,3,500,0.5)
+        self.lower_bounds_K = (0.1,0.1,0.1,0.1,0.1)
+        self.upper_bounds_K = (10000,2,10000,10000,2)
+        self.parameter_names = ('tau A->Gnd','beta A->Gnd','tau ?->B','tau B->Gnd','beta B->Gnd')
+    
+    def get_species_decay(self,time,params):
+        
+        decays = np.zeros((len(time),2))
+        decays[:,0] = self.stretched_decay(time,params[0],params[1])
+        decays[:,1] = self.rise(time,params[2]) * self.stretched_decay(time,params[3],params[4])
+        return decays
+    
+    def stretched_decay(self,t,t0,beta):
+        y = np.zeros(len(t))
+        y[t>0] = np.exp(-(t[t>0]/t0)**beta)
+        return y
+    
+    def rise(self,t,t0):
+        y = np.zeros(len(t))
+        y[t>0] = 1-np.exp(-t[t>0]/t0)
+        return y

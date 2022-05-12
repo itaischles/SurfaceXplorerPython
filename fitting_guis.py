@@ -316,6 +316,12 @@ class MCRGui(tk.Toplevel):
         initial_spectra = self.TA.deltaA[:,time_points_inds]
         self.fitmodel.mcrals.fit(self.TA.deltaA.T, ST=initial_spectra.T, st_fix=[], c_fix=[], verbose=False)
         
+        # normalize MCR-ALS populations
+        mcrals_populations = self.fitmodel.mcrals.C_opt_
+        for i in range(mcrals_populations.shape[1]):
+            for i in range(mcrals_populations.shape[1]):
+                mcrals_populations[:,i] = mcrals_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
+        
         # plot result
         self.plot_figure()
         
@@ -336,7 +342,7 @@ class MCRGui(tk.Toplevel):
         
         for i in range(self.fitmodel.mcrals.n_targets):
             self.ax_spectra.plot(self.TA.wavelength, self.fitmodel.mcrals.ST_opt_[i,:]/np.max(np.abs(self.fitmodel.mcrals.ST_opt_[i,:])))
-            self.ax_populations.plot(self.TA.delay, self.fitmodel.mcrals.C_opt_[:,i]/np.max(np.abs(self.fitmodel.mcrals.C_opt_[:,i])))
+            self.ax_populations.plot(self.TA.delay, self.fitmodel.mcrals.C_opt_[:,i])
         
         self.ax_spectra.set_xlabel('Wavelength')
         self.ax_spectra.set_ylabel('Norm. species spectra')

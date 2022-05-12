@@ -31,7 +31,7 @@ class PlotAreaFrame(tk.Frame):
         self.ax3 = self.fig.add_subplot(2,2,3)
         self.ax4 = self.fig.add_subplot(2,2,4)
         
-        self.residuals_colorbar = self.fig.colorbar(self.ax4.pcolormesh((0,1),(0,1),((0,0),(0,0)), shading='auto'), ax=self.ax4, label='mOD')
+        self.residuals_colorbar = self.fig.colorbar(self.ax4.pcolormesh((0,1),(0,1),((0,0),(0,0)), shading='auto'), ax=self.ax4, label='%')
         
         # make Tk/Matplotlib figure canvas
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
@@ -90,7 +90,7 @@ class PlotAreaFrame(tk.Frame):
         scaledTA = np.arctan(deltaA/np.max(np.max(np.abs(deltaA)))) # just for plotting! normalize deltaA and use arctan transformation
         # self.ax1.pcolormesh(TA.wavelength[::-1], TA.delay, scaledTA, shading='auto', cmap=cm.twilight)
         # self.ax1.contour(TA.wavelength[::-1], TA.delay, scaledTA, colors='black', alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
-        self.ax1.contourf(TA.wavelength[::-1], TA.delay, scaledTA, cmap=cm.twilight, levels=40)
+        self.ax1.contourf(TA.wavelength[::-1], TA.delay, scaledTA, cmap=cm.twilight, levels=20)
         self.ax1.set_title(r'$\Delta$A surface')
             
         # add the points of interest
@@ -152,10 +152,6 @@ class PlotAreaFrame(tk.Frame):
             
             mcrals_populations = fitmodel.mcrals.C_opt_
             model_populations = fitmodel.calc_species_decays(fit_params)
-            
-            # normalize MCR-ALS and model populations
-            for i in range(mcrals_populations.shape[1]):
-                mcrals_populations[:,i] = mcrals_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
             
             for i in range(model_populations.shape[1]):
                 color = cm.tab10(i)
@@ -245,7 +241,7 @@ class PlotAreaFrame(tk.Frame):
         self.ax3.figure.canvas.draw()
     
     def refresh_fig4(self, TA, fitmodel=[]):
-        
+
         # start by plotting the TA surface
         if TA == []:
             return
@@ -257,8 +253,9 @@ class PlotAreaFrame(tk.Frame):
             # get fitting parameters from the fitmodel object
             fit_params = np.concatenate(([fitmodel.irf, fitmodel.tzero], fitmodel.model.K))
             deltaA_residuals = fitmodel.calc_model_deltaA_residual_matrix(fit_params).transpose()
+            deltaA_rel_residuals = np.clip(deltaA_residuals/TA.deltaA.T*100, -100, 100)
             # self.residuals_plot = self.ax4.pcolormesh(TA.wavelength, TA.delay, deltaA_residuals*1000, shading='auto', cmap=cm.RdBu_r, norm=colors.CenteredNorm())
-            self.residuals_plot = self.ax4.contourf(TA.wavelength, TA.delay, deltaA_residuals*1000, cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=40)
+            self.residuals_plot = self.ax4.contourf(TA.wavelength, TA.delay, deltaA_rel_residuals, cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=20)
             self.residuals_colorbar.update_normal(self.residuals_plot)
             
             self.ax4.set_title(r'$\Delta$A residuals')

@@ -496,10 +496,6 @@ class SurfaceXplorerPythonGui(tk.Tk):
             mcrals_populations = self.fitmodel.mcrals.C_opt_
             mcrals_species_spectra = self.fitmodel.mcrals.ST_opt_.T
             
-            # normalize MCR-ALS and model populations
-            for i in range(mcrals_populations.shape[1]):
-                mcrals_populations[:,i] = mcrals_populations[:,i]/np.max(np.abs(mcrals_populations[:,i]))
-            
             # add wavelength/delay first columns
             mcrals_populations = np.concatenate((first_col_kinetics[1:], self.fitmodel.mcrals.C_opt_), axis=1)
             mcrals_species_spectra = np.concatenate((first_col_spectra[1:], self.fitmodel.mcrals.ST_opt_.T), axis=1)
@@ -683,9 +679,12 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.update_idletasks()
         
         # start the fitting
-        start_time = time.time()
-        self.fitmodel.fit_model()
-        fitting_time = time.time()-start_time
+        try:
+            start_time = time.time()
+            self.fitmodel.fit_model()
+            fitting_time = time.time()-start_time
+        except ValueError:
+            return
         
         # Refresh plots
         self.refresh_plots()
