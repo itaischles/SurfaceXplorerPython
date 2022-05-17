@@ -1,7 +1,11 @@
 # SurfaceXplorerPython
 Python GUI for transient absorption data correction and fitting
 
-## updated 05/22/2022
+## updated 05/17/2022
+
+Now GUI window can be resized
+
+## updated 05/11/2022
 
 Added/changed features:
 1. Model filtering based on number of species user selected.
