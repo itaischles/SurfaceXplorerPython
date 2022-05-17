@@ -88,11 +88,13 @@ class PlotAreaFrame(tk.Frame):
         if TA == []:
             return
         
+        sparse_step = 5 # for plotting speed, plot every 'sparse_step' pixels of data
+        
         self.ax1.cla()
 
         deltaA = np.flipud(TA.deltaA).transpose()
         scaledTA = np.tanh(deltaA) # just for plotting! normalize deltaA and use tanh transformation
-        self.ax1.contourf(TA.wavelength[::-1], TA.delay, scaledTA, cmap=cm.RdBu_r, levels=30)
+        self.ax1.contourf(TA.wavelength[::-sparse_step], TA.delay, scaledTA[::1,::sparse_step], cmap=cm.RdBu_r, levels=30)
         
         self.ax1.set_title(r'$\Delta$A surface')
             
@@ -249,13 +251,15 @@ class PlotAreaFrame(tk.Frame):
         if TA == []:
             return
         
+        sparse_step = 5 # for plotting speed, plot every 'sparse_step' pixels of data
+        
         self.ax4.cla()
         
         if fitmodel != []:
             
             deltaA_residuals = fitmodel.residuals_matrix
             deltaA_rel_residuals = np.clip(deltaA_residuals/TA.deltaA*100, -100, 100)
-            self.residuals_plot = self.ax4.contourf(TA.wavelength, TA.delay, deltaA_rel_residuals.T, cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=30)
+            self.residuals_plot = self.ax4.contourf(TA.wavelength[::sparse_step], TA.delay, deltaA_rel_residuals.T[::1,::sparse_step], cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=30)
             self.residuals_colorbar.update_normal(self.residuals_plot)
             
             self.ax4.set_title(r'$\Delta$A residuals')
