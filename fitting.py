@@ -8,7 +8,7 @@ from scipy.signal import convolve
 from scipy.interpolate import interp1d
 from scipy.optimize import least_squares
 from pymcr.mcr import McrAR
-from pymcr.constraints import ConstraintNonneg
+from pymcr.constraints import ConstraintNonneg, ConstraintNorm
 
 #####################################################################################################################
 #####################################################################################################################
@@ -38,6 +38,7 @@ class FitModel:
         self.fit_errors = np.ones(len(self.model.K)+1)*np.nan
         self.mean_squared_error = np.nan
         self.covariance_matrix = np.ones((len(self.fit_errors), len(self.fit_errors)))*np.nan
+        self.residuals_matrix = self.update_model_deltaA_residuals_matrix(np.concatenate(([self.irf, self.tzero], self.model.K)))
         self.fittype = 'global' # fit type can be: {'global', 'MCR-ALS'}
         
         # initialize mcrar object for multivariate curve resolution fitting
@@ -167,7 +168,7 @@ class FitModel:
             # since solver did not solve for t<0, add zeros before the solution(s)
             species_decays = np.concatenate((np.zeros((self.TA.delay[:t0ind].shape[0],species_decays.shape[1])), species_decays), axis=0)
             
-        elif self.model.type == 'other':
+        elif self.model.type == 'direct':
             
             species_decays = self.model.get_species_decay(self.TA.delay, K)    
         
@@ -229,12 +230,12 @@ class FitModel:
             
         return model_species_spectra
     
-    def calc_model_deltaA_residual_matrix(self, P):
+    def update_model_deltaA_residuals_matrix(self, P):
         
         # calculate deltaA residual matrix
-        deltaA_residuals = self.TA.deltaA - self.calc_model_deltaA(P)
+        residuals_matrix = self.TA.deltaA - self.calc_model_deltaA(P)
         
-        return deltaA_residuals
+        return residuals_matrix
         
     def fit_model(self):
         
@@ -263,6 +264,8 @@ class FitModel:
         self.model.K = self.optimized_result.x[2:]
         
         self.fit_errors = self._calculate_fit_error()
+        
+        self.update_model_deltaA_residuals_matrix(np.concatenate(([self.irf, self.tzero], self.model.K)))
         
     def change_initial_guess(self, initial_guess):
         

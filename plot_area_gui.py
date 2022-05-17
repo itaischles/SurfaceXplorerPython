@@ -15,14 +15,14 @@ class PlotAreaFrame(tk.Frame):
         
         super().__init__(master, relief=tk.FLAT) # parent class (=tk.Frame) initialization
         
-        # initialize frame to contain POIs
+        # initialize right side frame
         self.frame_right = tk.Frame(self)
         
         # create plot toolbar frame
         self.toolbar_frame = tk.Frame(self)
         
         # create the figure
-        self.fig = plt.Figure(figsize=(8,6))
+        self.fig = plt.Figure(figsize=(8,6),dpi=100)
         self.fig.set_tight_layout(True)
         
         # create axes
@@ -31,7 +31,7 @@ class PlotAreaFrame(tk.Frame):
         self.ax3 = self.fig.add_subplot(2,2,3)
         self.ax4 = self.fig.add_subplot(2,2,4)
         
-        self.residuals_colorbar = self.fig.colorbar(self.ax4.pcolormesh((0,1),(0,1),((0,0),(0,0)), shading='auto'), ax=self.ax4, label='%')
+        self.residuals_colorbar = self.fig.colorbar(self.ax4.pcolormesh((0,1),(0,1),((0,0),(0,0)),shading='auto',cmap=cm.RdBu_r), ax=self.ax4, label='%')
         
         # make Tk/Matplotlib figure canvas
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
@@ -74,9 +74,13 @@ class PlotAreaFrame(tk.Frame):
         self.display_mcrals_radiobutton.grid(row=5,column=0,sticky='w')
         
         # Use the grid geometry manager to pack the widgets in the main plot area frame
-        self.canvas.get_tk_widget().grid(row=0,column=0)
+        self.canvas.get_tk_widget().grid(row=0,column=0,sticky='nsew')
         self.frame_right.grid(row=0,column=1,sticky='ns')
-        self.toolbar_frame.grid(row=1,column=0,sticky='w')
+        self.toolbar_frame.grid(row=1,column=0,sticky='we')
+        
+        # resizing
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
         
     def refresh_fig1(self, TA, fitmodel=[]):
         
@@ -87,10 +91,9 @@ class PlotAreaFrame(tk.Frame):
         self.ax1.cla()
 
         deltaA = np.flipud(TA.deltaA).transpose()
-        scaledTA = np.arctan(deltaA/np.max(np.max(np.abs(deltaA)))) # just for plotting! normalize deltaA and use arctan transformation
-        # self.ax1.pcolormesh(TA.wavelength[::-1], TA.delay, scaledTA, shading='auto', cmap=cm.twilight)
-        # self.ax1.contour(TA.wavelength[::-1], TA.delay, scaledTA, colors='black', alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
-        self.ax1.contourf(TA.wavelength[::-1], TA.delay, scaledTA, cmap=cm.twilight, levels=20)
+        scaledTA = np.tanh(deltaA) # just for plotting! normalize deltaA and use tanh transformation
+        self.ax1.contourf(TA.wavelength[::-1], TA.delay, scaledTA, cmap=cm.RdBu_r, levels=30)
+        
         self.ax1.set_title(r'$\Delta$A surface')
             
         # add the points of interest
@@ -240,8 +243,8 @@ class PlotAreaFrame(tk.Frame):
         # show plot on GUI
         self.ax3.figure.canvas.draw()
     
-    def refresh_fig4(self, TA, fitmodel=[]):
-
+    def refresh_fig4(self, TA, fitmodel=[]):      
+    
         # start by plotting the TA surface
         if TA == []:
             return
@@ -250,12 +253,9 @@ class PlotAreaFrame(tk.Frame):
         
         if fitmodel != []:
             
-            # get fitting parameters from the fitmodel object
-            fit_params = np.concatenate(([fitmodel.irf, fitmodel.tzero], fitmodel.model.K))
-            deltaA_residuals = fitmodel.calc_model_deltaA_residual_matrix(fit_params).transpose()
-            deltaA_rel_residuals = np.clip(deltaA_residuals/TA.deltaA.T*100, -100, 100)
-            # self.residuals_plot = self.ax4.pcolormesh(TA.wavelength, TA.delay, deltaA_residuals*1000, shading='auto', cmap=cm.RdBu_r, norm=colors.CenteredNorm())
-            self.residuals_plot = self.ax4.contourf(TA.wavelength, TA.delay, deltaA_rel_residuals, cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=20)
+            deltaA_residuals = fitmodel.residuals_matrix
+            deltaA_rel_residuals = np.clip(deltaA_residuals/TA.deltaA*100, -100, 100)
+            self.residuals_plot = self.ax4.contourf(TA.wavelength, TA.delay, deltaA_rel_residuals.T, cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=30)
             self.residuals_colorbar.update_normal(self.residuals_plot)
             
             self.ax4.set_title(r'$\Delta$A residuals')
@@ -326,7 +326,7 @@ class PlotAreaFrame(tk.Frame):
         ax_surface_compare = plt.axes()
  
         deltaA = np.flipud(TA.deltaA).transpose()
-        scaledTA = np.arctan(deltaA/np.max(deltaA)) # just for plotting! normalize deltaA and use arctan transformation
+        scaledTA = np.tanh(deltaA) # just for plotting! normalize deltaA and use arctan transformation
         deltaA_compare = np.flipud(TA_compare.deltaA).transpose()
         scaledTA_compare = np.arctan(deltaA_compare/np.max(deltaA_compare)) # just for plotting! normalize deltaA and use arctan transformation
         

@@ -46,13 +46,15 @@ class LogFrame(tk.Frame):
         self.info_log.heading('col#1', text='Time')
         self.info_log.heading('col#2', text='Info')
         
-        self.info_log.column('col#1', width=120)
-        self.info_log.column('col#2', width=1100)
+        self.info_log.column('col#1', width=120, stretch=False)
+        self.info_log.column('col#2', width=1100, stretch=True)
         
         self.info_log.config(yscrollcommand=self.scrollbar.set)
         
-        self.info_log.pack(side=tk.LEFT)
-        self.scrollbar.pack(side=tk.LEFT, fill = tk.BOTH)
+        self.info_log.grid(row=0,column=0,sticky='nsew')
+        self.scrollbar.grid(row=0,column=1,sticky='nsew')
+        
+        self.grid_columnconfigure(0, weight=1)
         
     def update_log(self, new_info):
         now = datetime.now()

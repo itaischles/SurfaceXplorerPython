@@ -85,11 +85,11 @@ class ChirpCorrectGui(tk.Toplevel):
         
         # plot TA surface
         deltaA = np.flipud(self.TA.deltaA).transpose()
-        scaledTA = np.arctan(deltaA/np.max(deltaA)) # just for plotting! normalize deltaA and use arctan transformation
+        scaledTA = np.tanh(deltaA) # just for plotting! normalize deltaA and use tanh transformation
         self.ax.cla()
         # self.ax.pcolormesh(self.TA.wavelength[::-1], self.TA.delay, scaledTA, shading='nearest', cmap=cm.twilight)
         # self.ax.contour(self.TA.wavelength[::-1], self.TA.delay, scaledTA, colors='white', alpha=0.3, linewidths=0.5, linestyles='solid', levels=np.linspace(-1., 1., 10))
-        self.ax.contourf(self.TA.wavelength[::-1], self.TA.delay, scaledTA, cmap=cm.twilight, levels=40)
+        self.ax.contourf(self.TA.wavelength[::-1], self.TA.delay, scaledTA, cmap=cm.RdBu_r, levels=40)
         
         # plot sampled chirp points
         for iid in self.point_list.get_children():
@@ -354,7 +354,7 @@ class SVDGui(tk.Toplevel):
         
         # plot selected components on deltaA axes
         SVD_deltaA = np.flipud(self.get_SVD_deltaA_components(selected_SVD_indices)).transpose()
-        scaled_SVD_deltaA = -np.arctan(SVD_deltaA*1000)
+        scaled_SVD_deltaA = -np.tanh(SVD_deltaA*1000)
         self.ax1.cla()
         # self.ax1.pcolormesh(self.TA.wavelength[::-1], self.TA.delay, scaled_SVD_deltaA, shading='nearest', cmap=cm.RdBu)
         self.ax1.contourf(self.TA.wavelength[::-1], self.TA.delay, scaled_SVD_deltaA, cmap=cm.RdBu, levels=40)

@@ -40,14 +40,24 @@ class FittingUserInputFrame(tk.Frame):
         self.fittype_mcrals_radiobutton = ttk.Radiobutton(self, text='MCR-ALS fitting', variable=self.fittype_var, value=1, state='disabled')
         
         # use geometry manager to arrange widgets in user input frame
-        self.num_species_label.grid(row=0,column=0,sticky='w')
-        self.num_species_spinbox.grid(row=0,column=1,sticky='we')
-        self.model_label.grid(row=1,column=0,sticky='w')
-        self.model_combobox.grid(row=1,column=1,sticky='we',pady=10)
-        self.fit_params_table.grid(row=3,column=0,columnspan=2,pady=5)
-        self.fit_button.grid(row=4,column=0,columnspan=2,pady=5)
-        self.fittype_global_radiobutton.grid(row=5,column=0,columnspan=2)
-        self.fittype_mcrals_radiobutton.grid(row=6,column=0,columnspan=2)
+        self.num_species_label.grid(row=0,column=0,sticky='nw')
+        self.num_species_spinbox.grid(row=0,column=1,sticky='ne')
+        self.model_label.grid(row=1,column=0,sticky='nw')
+        self.model_combobox.grid(row=1,column=1,sticky='ne')
+        self.fit_params_table.grid(row=2,column=0,columnspan=2)
+        self.fit_button.grid(row=3,column=0,columnspan=2)
+        self.fittype_global_radiobutton.grid(row=4,column=0,columnspan=2)
+        self.fittype_mcrals_radiobutton.grid(row=5,column=0,columnspan=2)
+        
+        # resizing
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=0)
+        self.grid_rowconfigure(2, weight=0)
+        self.grid_rowconfigure(3, weight=0)
+        self.grid_rowconfigure(4, weight=0)
+        self.grid_rowconfigure(5, weight=0)
     
     def populate_model_combobox(self, *ignore):
 
@@ -247,7 +257,7 @@ class MCRGui(tk.Toplevel):
         # create instructions label
         self.instructions_label = ttk.Label(self,
                                             justify='center',
-                                            text = 'Select delay times (ps) for spectral initial guess. Separate by spaces'
+                                            text = 'Select delay times for spectral initial guess. Separate by spaces'
                                             )
         
         # create matplotlib figure
@@ -268,7 +278,7 @@ class MCRGui(tk.Toplevel):
         self.user_input_frame = tk.Frame(self)
         
         # add label to entry widget
-        self.delays_label = tk.Label(self.user_input_frame, text='Selected delays (ps)')
+        self.delays_label = tk.Label(self.user_input_frame, text='Selected delays')
         
         # add string var that holds selected delay times for initial guess
         self.delays = tk.StringVar()

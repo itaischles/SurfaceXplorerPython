@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import simpledialog
 
 import numpy as np
 import scipy.ndimage
@@ -29,6 +30,8 @@ class SurfaceXplorerPythonGui(tk.Tk):
         
         super().__init__() # parent class (=tk.Toplevel) initialization
         
+        self.geometry("1100x600")
+        
         self.title('SurfaceXplorerPython')
         self.option_add('*tearOff', False) # ALWAYS use this line if putting in menubar!!!!!
         
@@ -47,6 +50,10 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.plot_area_frame.grid(row=1,column=1,sticky='nsew')
         self.log_frame.grid(row=2,column=0,columnspan=2,sticky='nsew')
         
+        # resizing control
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+        
         # create Menubar
         self.create_menubar()
         
@@ -54,9 +61,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.fitting_user_input_frame.fit_button.configure(command=self.fit_to_model)
         self.fitting_user_input_frame.fittype_global_radiobutton.configure(command=self.change_fittype)
         self.fitting_user_input_frame.fittype_mcrals_radiobutton.configure(command=self.change_fittype)
-        self.plot_area_frame.display_POIs_radiobutton.configure(command=self.refresh_plots)
-        self.plot_area_frame.display_globalfitting_radiobutton.configure(command=self.refresh_plots)
-        self.plot_area_frame.display_mcrals_radiobutton.configure(command=self.refresh_plots)
+        self.plot_area_frame.display_POIs_radiobutton.configure(command=lambda: self.refresh_plots([2,3]))
+        self.plot_area_frame.display_globalfitting_radiobutton.configure(command=lambda: self.refresh_plots([2,3]))
+        self.plot_area_frame.display_mcrals_radiobutton.configure(command=lambda: self.refresh_plots([2,3]))
         
         # write Welcome message in log
         self.log_frame.update_log('Welcome to SurfaceXplorerPython!')
@@ -91,9 +98,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.surface_menu.add_command(label='Chirp correct...', command=self.chirp_correct)
         self.surface_menu.add_command(label='SVD filter', command=self.SVD_filter)
         self.surface_menu.add_cascade(menu=self.filter_menu, label='Smooth')
-        self.filter_menu.add_command(label='Apply Gaussian filter', command=self.apply_gaussian_filter)
-        self.filter_menu.add_command(label='Apply Median filter', command=self.apply_median_filter)
-        self.filter_menu.add_command(label='Apply DCT filter', command=self.apply_dct_filter)
+        self.filter_menu.add_command(label='Apply Gaussian filter...', command=self.apply_gaussian_filter)
+        self.filter_menu.add_command(label='Apply Median filter...', command=self.apply_median_filter)
+        self.filter_menu.add_command(label='Apply DCT filter...', command=self.apply_dct_filter)
         self.surface_menu.add_command(label='Quick create POIs (fs)', command=self.quick_create_POIs_fs)
         self.surface_menu.add_command(label='Quick create POIs (ns)', command=self.quick_create_POIs_ns)
         self.surface_menu.add_separator()
@@ -159,7 +166,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.plot_area_frame.display_mcrals_radiobutton.configure(state='normal')
         
         # Refresh plots
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
         
         # update path presented to user
         self.filepath_frame.set_new_filepath(filepath)
@@ -204,13 +211,18 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # update log
         self.log_frame.update_log('Saved file sucessfully to: ' + filepath)
     
-    def refresh_plots(self):
+    def refresh_plots(self, plot_nums):
         
-        # # Refresh plots
-        self.plot_area_frame.refresh_fig1(self.TA, self.fitmodel)
-        self.plot_area_frame.refresh_fig2(self.TA, self.fitmodel)
-        self.plot_area_frame.refresh_fig3(self.TA, self.fitmodel)
-        self.plot_area_frame.refresh_fig4(self.TA, self.fitmodel)
+        # Refresh plots
+        for i in plot_nums:
+            if i==1:
+                self.plot_area_frame.refresh_fig1(self.TA, self.fitmodel)
+            if i==2:
+                self.plot_area_frame.refresh_fig2(self.TA, self.fitmodel)
+            if i==3:
+                self.plot_area_frame.refresh_fig3(self.TA, self.fitmodel)
+            if i==4:
+                self.plot_area_frame.refresh_fig4(self.TA, self.fitmodel)
         
         # update the plot toolbar
         self.plot_area_frame.toolbar.update()
@@ -238,7 +250,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.change_model()
         
         # refresh plots
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
         
     def SVD_filter(self):
         
@@ -264,7 +276,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
             self.change_model()
             
             # refresh plots
-            self.refresh_plots()
+            self.refresh_plots([1,2,3,4])
         
     def crop_keep_selected(self):
         
@@ -285,7 +297,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.change_model()
         
         # Refresh plots, reset cursor object, and bind it to mouse movement over axis
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
         
         # update log
         self.log_frame.update_log('TA data cropped. New delay range={}, New wavelength range={}.'.format(delay_range,wavelength_range))
@@ -309,7 +321,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.change_model()
         
         # Refresh plots, reset cursor object, and bind it to mouse movement over axis
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
         
         # update log
         self.log_frame.update_log('TA data cropped. Deleted delay range={}, Deleted wavelength range={}.'.format(delay_range,wavelength_range))
@@ -324,7 +336,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
             self.plot_area_frame.POI_table.insert_poi(wavelength, delay)
             
             # refresh plots
-            self.refresh_plots()
+            self.refresh_plots([1,2,3,4])
     
     def clear_all_POIs(self):
         
@@ -335,7 +347,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.plot_area_frame.POI_table.setup_colors(num_colors=15)
         
         # Refresh plots
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
         
         # update log
         self.log_frame.update_log('Cleared all POIs')
@@ -354,46 +366,65 @@ class SurfaceXplorerPythonGui(tk.Tk):
             self.change_model()
         
             # Refresh plots
-            self.refresh_plots()
+            self.refresh_plots([1,2,3,4])
             
             # update log
             self.log_frame.update_log('Undo all changes')
             
     def apply_gaussian_filter(self):
         
+        # open user input dialog that asks for the Gaussian width
+        sigma = simpledialog.askfloat("Gaussian filter", "Please enter Gaussian sigma (between 0 and 5):",
+                                      parent=self,
+                                      minvalue=0.0, maxvalue=5.0)
+        if sigma is None:
+            return
+        
         # apply Gaussian filter
-        self.TA.deltaA = scipy.ndimage.gaussian_filter(self.TA.deltaA, sigma=0.75)
+        self.TA.deltaA = scipy.ndimage.gaussian_filter(self.TA.deltaA, sigma=sigma)
         
         # reset the fitmodel object
         self.change_model()
         
         # Refresh plots
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
         
         # update log
         self.log_frame.update_log('TA data smoothed using Gaussian filter')
         
     def apply_median_filter(self):
         
+        # open user input dialog that asks for the region around each pixel to compute median
+        median_size = simpledialog.askinteger("Median filter", "Please enter median calculation region in pixels (integer between 0 and 10):",
+                                      parent=self,
+                                      minvalue=0, maxvalue=10)
+        if median_size is None:
+            return
+        
         # apply median filter
-        self.TA.deltaA = scipy.ndimage.median_filter(self.TA.deltaA, 3)
+        self.TA.deltaA = scipy.ndimage.median_filter(self.TA.deltaA, size=median_size)
         
         # reset the fitmodel object
         self.change_model()
         
         # Refresh plots
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
         
         # update log
         self.log_frame.update_log('TA data smoothed using median filter')
         
     def apply_dct_filter(self):
         
+        # open user input dialog that asks for the low-pass filter cutoff
+        LPF_cutoff = simpledialog.askinteger("Median filter", "Please enter low-pass filter cutoff (integer between 0 and 100):",
+                                      parent=self,
+                                      minvalue=0, maxvalue=100)
+        
         # calculate DCT
         deltaA_DCT = scipy.fft.dct(scipy.fft.dct(self.TA.deltaA, axis=0), axis=1)
         
         # filter high-frequency spectral components
-        deltaA_DCT[40:,:] = 0.0
+        deltaA_DCT[LPF_cutoff:,:] = 0.0
         
         # calculate inverse DCT
         self.TA.deltaA = scipy.fft.idct(scipy.fft.idct(deltaA_DCT, axis=0), axis=1)
@@ -402,7 +433,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.change_model()
         
         # Refresh plots
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
         
         # update log
         self.log_frame.update_log('TA data smoothed using DCT filter')
@@ -422,7 +453,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
             self.plot_area_frame.POI_table.insert_poi(wavelength, delay)
             
         # refresh plots
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
         
         # update log
         self.log_frame.update_log('Added new automatic POIs')
@@ -442,7 +473,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
             self.plot_area_frame.POI_table.insert_poi(wavelength, delay)
             
         # refresh plots
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
         
         # update log
         self.log_frame.update_log('Added new automatic POIs')
@@ -471,10 +502,10 @@ class SurfaceXplorerPythonGui(tk.Tk):
         first_col_spectra = np.expand_dims(np.concatenate((np.zeros(1),self.TA.wavelength)),axis=1)
         
         ########################################
-        # Prepare arctan scaling of TA surface #
+        # Prepare tanh scaling of TA surface #
         ########################################
         
-        deltaA_scaled = np.arctan(self.TA.deltaA/np.max(self.TA.deltaA))
+        deltaA_scaled = np.tanh(self.TA.deltaA)
         deltaA_scaled = np.concatenate((np.asmatrix(self.TA.delay),deltaA_scaled))
         deltaA_scaled = np.concatenate((np.asmatrix(np.insert(self.TA.wavelength, 0, 0)).T,deltaA_scaled),axis=1)
         
@@ -483,7 +514,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         ################
         
         fit_params = np.concatenate(([self.fitmodel.irf, self.fitmodel.tzero], self.fitmodel.model.K))
-        deltaA_residuals = self.fitmodel.calc_model_deltaA_residual_matrix(fit_params)
+        deltaA_residuals = self.fitmodel.residuals_matrix
         deltaA_residuals = np.concatenate((np.asmatrix(self.TA.delay),deltaA_residuals))
         deltaA_residuals = np.concatenate((np.asmatrix(np.insert(self.TA.wavelength, 0, 0)).T,deltaA_residuals),axis=1)
         if export_POIs==True:
@@ -624,7 +655,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.log_frame.update_log('Pre-t0 background subtracted from TA data')
         
         # refresh plots
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
         
     def read_model_library(self):
         
@@ -662,7 +693,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.fitting_user_input_frame.fit_params_table.populate(self.fitmodel)
         
         # refresh plots
-        self.refresh_plots()
+        self.refresh_plots([2,3,4])
     
     def fit_to_model(self):
         
@@ -687,7 +718,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
             return
         
         # Refresh plots
-        self.refresh_plots()
+        self.refresh_plots([2,3,4])
         
         # refresh the parameters table
         self.fitting_user_input_frame.fit_params_table.populate(self.fitmodel)
@@ -714,7 +745,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.fitting_user_input_frame.fit_params_table.populate(self.fitmodel)
         
         # Refresh plots
-        self.refresh_plots()
+        self.refresh_plots([2,3,4])
         
         # refresh the parameters table
         self.fitting_user_input_frame.fit_params_table.populate(self.fitmodel)
@@ -795,7 +826,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.TA.subtract_surface(TA_subtract)
         
         # Refresh plots
-        self.refresh_plots()
+        self.refresh_plots([1,2,3,4])
     
     def mcrals_analysis(self):
         
@@ -812,7 +843,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
             return
         
         # refresh plots
-        self.refresh_plots()
+        self.refresh_plots([2,3,4])
         
         # update log
         self.log_frame.update_log('Data was fitted to MCR-ALS model.')
@@ -851,4 +882,4 @@ class SurfaceXplorerPythonGui(tk.Tk):
         self.fitting_user_input_frame.fit_params_table.populate(self.fitmodel)
         
         # refresh plots
-        self.refresh_plots()
+        self.refresh_plots([2,3,4])
