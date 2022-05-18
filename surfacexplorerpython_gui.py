@@ -714,20 +714,26 @@ class SurfaceXplorerPythonGui(tk.Tk):
             start_time = time.time()
             self.fitmodel.fit_model()
             fitting_time = time.time()-start_time
-        except ValueError:
-            return
+            
+            # Refresh plots
+            self.refresh_plots([2,3,4])
+            
+            # refresh the parameters table
+            self.fitting_user_input_frame.fit_params_table.populate(self.fitmodel)
+            
+            # configure the fit button to show user fitting is in progress
+            self.fitting_user_input_frame.fit_button.configure(text='Fit', state='normal')
+            
+            # update log
+            self.log_frame.update_log('Fitted the data to model '+self.fitting_user_input_frame.selected_model.get()+' in '+str(fitting_time)+' sec')
         
-        # Refresh plots
-        self.refresh_plots([2,3,4])
-        
-        # refresh the parameters table
-        self.fitting_user_input_frame.fit_params_table.populate(self.fitmodel)
-        
-        # configure the fit button to show user fitting is in progress
-        self.fitting_user_input_frame.fit_button.configure(text='Fit', state='normal')
-        
-        # update log
-        self.log_frame.update_log('Fitted the data to model '+self.fitting_user_input_frame.selected_model.get()+' in '+str(fitting_time)+' sec')
+        except:
+            
+            # update log
+            self.log_frame.update_log('Could not fit to model. Error encountered')
+            
+            # configure the fit button to show user fitting is in progress
+            self.fitting_user_input_frame.fit_button.configure(text='Fit', state='normal')
         
     def edit_initial_guess(self):
         

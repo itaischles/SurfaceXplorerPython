@@ -108,7 +108,7 @@ class FitParamsTable(ttk.Treeview):
         super().__init__(master,
                          columns=('col#1', 'col#2', 'col#3'),
                          show='headings',
-                         height=7,
+                         height=15,
                          selectmode = 'browse'
                          )
         

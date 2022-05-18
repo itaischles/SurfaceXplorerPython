@@ -258,7 +258,7 @@ class SVDGui(tk.Toplevel):
         self.U, self.S, self.VH = np.linalg.svd(self.TA.deltaA)
         
         # create matplotlib figures
-        self.fig = plt.Figure(figsize=(9,6))
+        self.fig = plt.Figure(figsize=(8,6),dpi=100)
         self.fig.set_tight_layout(True)
         
         # create axes
@@ -305,10 +305,14 @@ class SVDGui(tk.Toplevel):
         # self.ax4.figure.canvas.draw()
         
         # pack the widgets onto the frames
-        self.canvas.get_tk_widget().grid(row=0,column=0)
-        self.toolbar_frame.grid(row=1,column=0, sticky='w')
+        self.canvas.get_tk_widget().grid(row=0,column=0,sticky='nsew')
+        self.toolbar_frame.grid(row=1,column=0, sticky='we')
         self.component_selection_frame.grid(row=2,column=0)
         self.apply_SVD_filter_button.grid(row=3,column=0)
+        
+        # resizing
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         
         # make this window modal
         self.wait_window()
@@ -352,12 +356,14 @@ class SVDGui(tk.Toplevel):
         if selected_SVD_indices==[]:
             return
         
+        sparse_step = 5 # for plotting speed, plot every 'sparse_step' pixels of data
+        
         # plot selected components on deltaA axes
         SVD_deltaA = np.flipud(self.get_SVD_deltaA_components(selected_SVD_indices)).transpose()
         scaled_SVD_deltaA = -np.tanh(SVD_deltaA*1000)
         self.ax1.cla()
-        # self.ax1.pcolormesh(self.TA.wavelength[::-1], self.TA.delay, scaled_SVD_deltaA, shading='nearest', cmap=cm.RdBu)
-        self.ax1.contourf(self.TA.wavelength[::-1], self.TA.delay, scaled_SVD_deltaA, cmap=cm.RdBu, levels=40)
+        self.ax1.contourf(self.TA.wavelength[::-sparse_step], self.TA.delay, scaled_SVD_deltaA[::1,::sparse_step], cmap=cm.RdBu, levels=40, norm=colors.CenteredNorm())
+        self.ax1.contour(self.TA.wavelength[::-sparse_step], self.TA.delay, scaled_SVD_deltaA[::1,::sparse_step], colors='black', levels=40, alpha=0.3, linewidths=0.2)
         self.ax1.set_title(r'Filtered $\Delta$A surface')
         self.ax1.set_yscale('symlog', linthresh=1.0, linscale=0.35)
         self.ax1.set_xlabel('Wavelength')
@@ -387,7 +393,8 @@ class SVDGui(tk.Toplevel):
         SVD_deltaA = self.get_SVD_filtered_deltaA()[1]
         residual_matrix = (self.TA.deltaA - SVD_deltaA).T
         self.ax4.cla()
-        self.residuals_plot = self.ax4.contourf(self.TA.wavelength[::-1], self.TA.delay, residual_matrix, cmap=cm.RdBu, levels=40, norm=colors.CenteredNorm())
+        self.residuals_plot = self.ax4.contourf(self.TA.wavelength[::-sparse_step], self.TA.delay, residual_matrix[::1,::sparse_step], cmap=cm.RdBu, levels=40, norm=colors.CenteredNorm())
+        self.ax4.contour(self.TA.wavelength[::-sparse_step], self.TA.delay, residual_matrix[::1,::sparse_step], colors='black', levels=40, alpha=0.3, linewidths=0.2)
         self.ax4.set_title(r'$\Delta$A residuals')
         self.residuals_colorbar.update_normal(self.residuals_plot)
         self.ax4.set_yscale('symlog', linthresh=1.0, linscale=0.35)

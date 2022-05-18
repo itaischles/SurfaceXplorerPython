@@ -268,7 +268,7 @@ class FitModel:
         
         self.fit_errors = self._calculate_fit_error()
         
-        self.update_model_deltaA_residuals_matrix(np.concatenate(([self.irf, self.tzero], self.model.K)))
+        self.residuals_matrix = self.update_model_deltaA_residuals_matrix(np.concatenate(([self.irf, self.tzero], self.model.K)))
         
     def change_initial_guess(self, initial_guess):
         
