@@ -30,7 +30,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
         
         super().__init__() # parent class (=tk.Toplevel) initialization
         
-        self.geometry("1100x600")
+        self.geometry("1300x800")
         
         self.title('SurfaceXplorerPython')
         self.option_add('*tearOff', False) # ALWAYS use this line if putting in menubar!!!!!

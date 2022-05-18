@@ -94,7 +94,8 @@ class PlotAreaFrame(tk.Frame):
 
         deltaA = np.flipud(TA.deltaA).transpose()
         scaledTA = np.tanh(deltaA) # just for plotting! normalize deltaA and use tanh transformation
-        self.ax1.contourf(TA.wavelength[::-sparse_step], TA.delay, scaledTA[::1,::sparse_step], cmap=cm.RdBu_r, levels=30)
+        self.ax1.contourf(TA.wavelength[::-sparse_step], TA.delay, scaledTA[::1,::sparse_step], cmap=cm.RdBu_r, levels=40, norm=colors.CenteredNorm())
+        self.ax1.contour(TA.wavelength[::-sparse_step], TA.delay, scaledTA[::1,::sparse_step], colors='black', levels=40, alpha=0.3, linewidths=0.2)
         
         self.ax1.set_title(r'$\Delta$A surface')
             
@@ -259,7 +260,7 @@ class PlotAreaFrame(tk.Frame):
             
             deltaA_residuals = fitmodel.residuals_matrix
             deltaA_rel_residuals = np.clip(deltaA_residuals/(TA.deltaA+1e-9)*100, -100, 100)
-            self.residuals_plot = self.ax4.contourf(TA.wavelength[::sparse_step], TA.delay, deltaA_rel_residuals.T[::1,::sparse_step], cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=30)
+            self.residuals_plot = self.ax4.contourf(TA.wavelength[::sparse_step], TA.delay, deltaA_rel_residuals.T[::1,::sparse_step], cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=40)
             self.residuals_colorbar.update_normal(self.residuals_plot)
             
             self.ax4.set_title(r'$\Delta$A residuals')
