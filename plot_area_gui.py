@@ -258,7 +258,7 @@ class PlotAreaFrame(tk.Frame):
         if fitmodel != []:
             
             deltaA_residuals = fitmodel.residuals_matrix
-            deltaA_rel_residuals = np.clip(deltaA_residuals/TA.deltaA*100, -100, 100)
+            deltaA_rel_residuals = np.clip(deltaA_residuals/(TA.deltaA+1e-9)*100, -100, 100)
             self.residuals_plot = self.ax4.contourf(TA.wavelength[::sparse_step], TA.delay, deltaA_rel_residuals.T[::1,::sparse_step], cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=30)
             self.residuals_colorbar.update_normal(self.residuals_plot)
             

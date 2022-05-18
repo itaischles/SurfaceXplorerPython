@@ -62,10 +62,11 @@ class FitModel:
         # zero the kinetic traces prior to time zero (effectively applying a step function)
         kinetic_traces[0:t0_index, :] = 0.0
         
-        # create linearly sampled time axis for convolution with Gaussian
+        # create linearly sampled time axis for convolution with Gaussian up to 50*IRF
         dt = (self.TA.delay[1]-self.TA.delay[0])/3 # for interpolation, use 1/3 of a step in the delay vector
-        delay_positive = np.arange(tzero, self.TA.delay[-1]+dt, dt)
-        delay_negative = np.arange(-self.TA.delay[-1], tzero, dt)
+        conv_inds = np.argwhere(self.TA.delay < 50*self.irf)[:,0]
+        delay_positive = np.arange(tzero, self.TA.delay[conv_inds[-1]]+dt, dt)
+        delay_negative = np.arange(-self.TA.delay[conv_inds[-1]], tzero, dt)
         delay = np.concatenate((delay_negative, delay_positive))
         
         # create Gaussian IRF
@@ -89,7 +90,9 @@ class FitModel:
             
             # interpolate result back to log-sampled delay
             kinetic_trace_convolved_interp1d_func = interp1d(delay, kinetic_trace_interp1d_convolved, bounds_error=False, fill_value=0.0)
-            kinetic_traces_convolved[:,i] = kinetic_trace_convolved_interp1d_func(self.TA.delay)
+            kinetic_traces_convolved[conv_inds,i] = kinetic_trace_convolved_interp1d_func(self.TA.delay[conv_inds])
+            kinetic_traces_convolved[conv_inds[-1]:,i] = kinetic_traces[conv_inds[-1]:,i]
+            
         
         return kinetic_traces_convolved
     
@@ -163,7 +166,7 @@ class FitModel:
         # The solve_ivp method 'LSODA' appears to be much faster (~0.01 sec) than the default 'RK45' (~0.2 sec)
         if self.model.type == 'diffeq':
             
-            species_decays = solve_ivp(lambda t,y: self.model.diffeq(t,y,K), t_span, self.model.initial_populations, t_eval=self.TA.delay[t0ind:], method='LSODA').y.transpose()
+            species_decays = solve_ivp(lambda t,y: self.model.diffeq(t,y,K), t_span, self.model.initial_populations, t_eval=self.TA.delay[t0ind:], method='LSODA', vectorized=True).y.transpose()
             
             # since solver did not solve for t<0, add zeros before the solution(s)
             species_decays = np.concatenate((np.zeros((self.TA.delay[:t0ind].shape[0],species_decays.shape[1])), species_decays), axis=0)
