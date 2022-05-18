@@ -31,7 +31,7 @@ class PlotAreaFrame(tk.Frame):
         self.ax3 = self.fig.add_subplot(2,2,3)
         self.ax4 = self.fig.add_subplot(2,2,4)
         
-        self.residuals_colorbar = self.fig.colorbar(self.ax4.pcolormesh((0,1),(0,1),((0,0),(0,0)),shading='auto',cmap=cm.RdBu_r), ax=self.ax4, label='%')
+        self.residuals_colorbar = self.fig.colorbar(self.ax4.pcolormesh((0,1),(0,1),((0,0),(0,0)),shading='auto',cmap=cm.RdBu_r), ax=self.ax4)
         
         # make Tk/Matplotlib figure canvas
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
@@ -260,7 +260,8 @@ class PlotAreaFrame(tk.Frame):
             
             deltaA_residuals = fitmodel.residuals_matrix
             deltaA_rel_residuals = np.clip(deltaA_residuals/(TA.deltaA+1e-9)*100, -100, 100)
-            self.residuals_plot = self.ax4.contourf(TA.wavelength[::sparse_step], TA.delay, deltaA_rel_residuals.T[::1,::sparse_step], cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=40)
+            self.residuals_plot = self.ax4.contourf(TA.wavelength[::sparse_step], TA.delay, deltaA_residuals.T[::1,::sparse_step], cmap=cm.RdBu_r, norm=colors.CenteredNorm(), levels=40)
+            self.ax4.contour(TA.wavelength[::sparse_step], TA.delay, deltaA_residuals.T[::1,::sparse_step], colors='black', levels=40, alpha=0.3, linewidths=0.2)
             self.residuals_colorbar.update_normal(self.residuals_plot)
             
             self.ax4.set_title(r'$\Delta$A residuals')
