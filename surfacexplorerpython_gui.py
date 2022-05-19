@@ -750,11 +750,11 @@ class SurfaceXplorerPythonGui(tk.Tk):
         # refresh the parameters table
         self.fitting_user_input_frame.fit_params_table.populate(self.fitmodel)
         
-        # Refresh plots
-        self.refresh_plots([2,3,4])
-        
         # refresh the parameters table
         self.fitting_user_input_frame.fit_params_table.populate(self.fitmodel)
+        
+        # Refresh plots
+        self.refresh_plots([2,3,4])
         
         # update log
         self.log_frame.update_log('New initial guess of fitting parameters')
