@@ -617,7 +617,7 @@ class SurfaceXplorerPythonGui(tk.Tk):
             np.savetxt(f, deltaA_residuals, delimiter=',', fmt='%.6e')
             
         # save the deltaA matrix in scaled-arctan form
-        deltaA_scaled_filepath = self.TA.filepath + '/Exports/Scaled TA surface/' + self.TA.basename +'__deltaA_arctan_scaled.csv'
+        deltaA_scaled_filepath = self.TA.filepath + '/Exports/Scaled TA surface/' + self.TA.basename +'__deltaA_tanh_scaled.csv'
         with open(deltaA_scaled_filepath, 'wb') as f:
             np.savetxt(f, deltaA_scaled, delimiter=',', fmt='%.6e')
             
