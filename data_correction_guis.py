@@ -360,7 +360,7 @@ class SVDGui(tk.Toplevel):
         
         # plot selected components on deltaA axes
         SVD_deltaA = np.flipud(self.get_SVD_deltaA_components(selected_SVD_indices)).transpose()
-        scaled_SVD_deltaA = -np.tanh(SVD_deltaA*1000)
+        scaled_SVD_deltaA = -np.tanh(SVD_deltaA)
         self.ax1.cla()
         self.ax1.contourf(self.TA.wavelength[::-sparse_step], self.TA.delay, scaled_SVD_deltaA[::1,::sparse_step], cmap=cm.RdBu, levels=40, norm=colors.CenteredNorm())
         self.ax1.contour(self.TA.wavelength[::-sparse_step], self.TA.delay, scaled_SVD_deltaA[::1,::sparse_step], colors='black', levels=40, alpha=0.3, linewidths=0.2)
@@ -393,8 +393,8 @@ class SVDGui(tk.Toplevel):
         SVD_deltaA = self.get_SVD_filtered_deltaA()[1]
         residual_matrix = (self.TA.deltaA - SVD_deltaA).T
         self.ax4.cla()
-        self.residuals_plot = self.ax4.contourf(self.TA.wavelength[::-sparse_step], self.TA.delay, residual_matrix[::1,::sparse_step], cmap=cm.RdBu, levels=40, norm=colors.CenteredNorm())
-        self.ax4.contour(self.TA.wavelength[::-sparse_step], self.TA.delay, residual_matrix[::1,::sparse_step], colors='black', levels=40, alpha=0.3, linewidths=0.2)
+        self.residuals_plot = self.ax4.contourf(self.TA.wavelength[::sparse_step], self.TA.delay, residual_matrix[::1,::sparse_step], cmap=cm.RdBu, levels=40, norm=colors.CenteredNorm())
+        self.ax4.contour(self.TA.wavelength[::sparse_step], self.TA.delay, residual_matrix[::1,::sparse_step], colors='black', levels=40, alpha=0.3, linewidths=0.2)
         self.ax4.set_title(r'$\Delta$A residuals')
         self.residuals_colorbar.update_normal(self.residuals_plot)
         self.ax4.set_yscale('symlog', linthresh=1.0, linscale=0.35)
