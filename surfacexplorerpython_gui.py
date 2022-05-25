@@ -420,6 +420,9 @@ class SurfaceXplorerPythonGui(tk.Tk):
                                       parent=self,
                                       minvalue=0, maxvalue=100)
         
+        if LPF_cutoff is None:
+            return
+        
         # calculate DCT
         deltaA_DCT = scipy.fft.dct(scipy.fft.dct(self.TA.deltaA, axis=0), axis=1)
         
